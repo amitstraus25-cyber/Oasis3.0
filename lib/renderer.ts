@@ -5,76 +5,54 @@ import type {
   TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel, GameMode, Winner,
 } from './types';
 
-// OASIS letter patterns for floor branding (5 tiles wide, 7 tiles tall - smaller to fit)
-const OASIS_LETTERS_BIG: Record<string, string[]> = {
-  O: [
-    '01110',
-    '10001',
-    '10001',
-    '10001',
-    '10001',
-    '10001',
-    '01110',
-  ],
-  A: [
-    '00100',
-    '01010',
-    '10001',
-    '10001',
-    '11111',
-    '10001',
-    '10001',
-  ],
-  S: [
-    '01111',
-    '10000',
-    '10000',
-    '01110',
-    '00001',
-    '00001',
-    '11110',
-  ],
-  I: [
-    '11111',
-    '00100',
-    '00100',
-    '00100',
-    '00100',
-    '00100',
-    '11111',
-  ],
-};
+// Oasis logo pixel art (17x17) - circle "O" with wave cutout
+// 0 = empty, 1 = dark ring, 2 = wave accent
+const OASIS_LOGO: number[][] = [
+  [0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],
+  [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,0,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0],
+  [0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+  [0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
+  [1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+  [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+  [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+  [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+  [1,1,2,2,0,0,0,2,2,2,0,0,0,0,1,1,1],
+  [1,1,1,2,2,2,2,2,0,2,2,2,0,0,0,1,0],
+  [0,1,1,0,0,2,2,0,0,0,2,2,2,0,1,1,0],
+  [0,1,1,1,0,0,0,0,0,0,0,2,2,1,1,1,0],
+  [0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0],
+  [0,0,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0],
+  [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],
+];
 
-// Check if tile is part of OASIS branding - smaller version to fit map
+const LOGO_SIZE = 17;
+
+// Check if tile is part of the Oasis logo on the floor
 function isOasisBrandTile(tx: number, ty: number): boolean {
-  // Place "OASIS" centered on the map
-  const letterHeight = 7;
-  const letterWidth = 5;
-  const letterSpacing = 2;
-  const totalWidth = 5 * letterWidth + 4 * letterSpacing; // 5 letters, 4 gaps
+  const startX = Math.floor((MAP_W - LOGO_SIZE) / 2);
+  const startY = Math.floor((MAP_H - LOGO_SIZE) / 2);
   
-  const brandStartX = Math.floor((MAP_W - totalWidth) / 2);
-  const brandStartY = Math.floor((MAP_H - letterHeight) / 2);
+  if (tx < startX || tx >= startX + LOGO_SIZE) return false;
+  if (ty < startY || ty >= startY + LOGO_SIZE) return false;
   
-  if (ty < brandStartY || ty >= brandStartY + letterHeight) return false;
-  if (tx < brandStartX || tx >= brandStartX + totalWidth) return false;
+  const col = tx - startX;
+  const row = ty - startY;
+  return OASIS_LOGO[row][col] > 0;
+}
+
+// Check if tile is the wave accent part of the logo
+function isOasisWaveTile(tx: number, ty: number): boolean {
+  const startX = Math.floor((MAP_W - LOGO_SIZE) / 2);
+  const startY = Math.floor((MAP_H - LOGO_SIZE) / 2);
   
-  const row = ty - brandStartY;
-  const letters = ['O', 'A', 'S', 'I', 'S'];
+  if (tx < startX || tx >= startX + LOGO_SIZE) return false;
+  if (ty < startY || ty >= startY + LOGO_SIZE) return false;
   
-  let currentX = brandStartX;
-  for (const letter of letters) {
-    if (tx >= currentX && tx < currentX + letterWidth) {
-      const col = tx - currentX;
-      const pattern = OASIS_LETTERS_BIG[letter];
-      if (pattern && pattern[row] && pattern[row][col] === '1') {
-        return true;
-      }
-      return false;
-    }
-    currentX += letterWidth + letterSpacing;
-  }
-  return false;
+  const col = tx - startX;
+  const row = ty - startY;
+  return OASIS_LOGO[row][col] === 2;
 }
 
 // Get oasis/desert gradient color based on position
@@ -94,11 +72,15 @@ function getOasisGradient(tx: number, ty: number): string {
   // Add checker pattern variation
   const checker = (tx + ty) % 2 === 0 ? 0 : -8;
   
-  // OASIS branding - more visible teal tint
-  if (isOasisBrandTile(tx, ty)) {
-    r -= 40;
-    g += 25;
-    b += 35;
+  // Oasis logo branding - purple tint for ring, lighter for waves
+  if (isOasisWaveTile(tx, ty)) {
+    r -= 20;
+    g -= 10;
+    b += 50;
+  } else if (isOasisBrandTile(tx, ty)) {
+    r -= 50;
+    g -= 20;
+    b += 40;
   }
   
   return `rgb(${r + checker},${g + checker},${b + checker})`;
@@ -1054,12 +1036,22 @@ export function drawMinimap(
     }
   }
 
-  // Draw "OASIS" text
-  ctx.fillStyle = 'rgba(124,92,252,0.7)';
-  ctx.font = `bold ${Math.floor(mw / 7)}px monospace`;
-  ctx.textAlign = 'center';
-  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 4);
-  ctx.textAlign = 'left';
+  // Draw Oasis logo on minimap
+  const logoStartX = Math.floor((MAP_W - LOGO_SIZE) / 2);
+  const logoStartY = Math.floor((MAP_H - LOGO_SIZE) / 2);
+  for (let ly = 0; ly < LOGO_SIZE; ly++) {
+    for (let lx = 0; lx < LOGO_SIZE; lx++) {
+      const val = OASIS_LOGO[ly][lx];
+      if (val > 0) {
+        ctx.fillStyle = val === 2 ? 'rgba(167,139,250,0.5)' : 'rgba(124,92,252,0.4)';
+        ctx.fillRect(
+          mx + (logoStartX + lx) * sx,
+          my + (logoStartY + ly) * sy,
+          Math.ceil(sx), Math.ceil(sy)
+        );
+      }
+    }
+  }
 
   for (const d of issues) {
     ctx.fillStyle = d.fixed ? '#44cc44' : '#ff4444';
