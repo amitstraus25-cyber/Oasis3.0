@@ -12,7 +12,7 @@ import { generateMap, createPlayer, createNPCs, createIssues, createCamels } fro
 import { initAudio, sfxFix, sfxWin, sfxLose } from '@/lib/audio';
 import {
   drawTile, drawCubicleLabels, drawPerson, drawIssue, drawCamel,
-  drawHUD, drawParticles, drawTitle, drawEnd, drawModeSelect,
+  drawHUD, drawParticles, drawTitle, drawEnd, drawModeSelect, drawMinimap,
 } from '@/lib/renderer';
 
 export default function Game() {
@@ -612,6 +612,22 @@ export default function Game() {
       // Divider line
       ctx.fillStyle = '#333';
       ctx.fillRect(SPLIT_VW - 2, 0, 4, VH);
+      
+      // Minimap for Player 1 (bottom-right of left panel)
+      drawMinimap(ctx, state.map, state.issues, state.player, state.player2, {
+        width: 90,
+        posX: SPLIT_VW - 100,
+        playerColor: OASIS.tealLight,
+        player2Color: OASIS.gold
+      });
+      
+      // Minimap for Player 2 (bottom-right of right panel)
+      drawMinimap(ctx, state.map, state.issues, state.player, state.player2, {
+        width: 90,
+        posX: VW - 100,
+        playerColor: OASIS.tealLight,
+        player2Color: OASIS.gold
+      });
       
       // Shared timer at top center
       ctx.fillStyle = OASIS.navy + 'e0';

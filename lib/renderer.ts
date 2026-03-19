@@ -995,11 +995,17 @@ export function drawMinimap(
   ctx: CanvasRenderingContext2D,
   map: TileType[][],
   issues: Issue[],
-  player: Player
+  player: Player,
+  player2?: Player | null,
+  options?: { width?: number; posX?: number; playerColor?: string; player2Color?: string }
 ): void {
-  const mw = 120, mh = 92;
-  const mx = VW - mw - 10, my = VH - mh - 10;
+  const mw = options?.width || 120;
+  const mh = Math.floor(mw * 0.77); // Maintain aspect ratio
+  const mx = options?.posX !== undefined ? options.posX : VW - mw - 10;
+  const my = VH - mh - 10;
   const sx = mw / MAP_W, sy = mh / MAP_H;
+  const playerColor = options?.playerColor || '#00ffaa';
+  const player2Color = options?.player2Color || '#FFD700';
 
   ctx.fillStyle = 'rgba(0,0,0,0.72)';
   ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
@@ -1020,18 +1026,26 @@ export function drawMinimap(
 
   // Draw "OASIS" text on top so it's fully visible
   ctx.fillStyle = OASIS.teal;
-  ctx.font = 'bold 18px monospace';
+  ctx.font = `bold ${Math.floor(mw / 7)}px monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 6);
+  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 4);
   ctx.textAlign = 'left';
 
+  // Draw issues
   for (const d of issues) {
     ctx.fillStyle = d.fixed ? '#44cc44' : '#ff4444';
     ctx.fillRect(mx + d.tileX * sx - 1, my + d.tileY * sy - 1, 4, 4);
   }
 
-  ctx.fillStyle = '#00ffaa';
+  // Draw player 1
+  ctx.fillStyle = playerColor;
   ctx.fillRect(mx + (player.x / TILE) * sx - 2, my + (player.y / TILE) * sy - 2, 5, 5);
+
+  // Draw player 2 if present
+  if (player2) {
+    ctx.fillStyle = player2Color;
+    ctx.fillRect(mx + (player2.x / TILE) * sx - 2, my + (player2.y / TILE) * sy - 2, 5, 5);
+  }
 }
 
 // Draw sand clock (smaller)
