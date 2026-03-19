@@ -157,7 +157,7 @@ export function createPlayer(playerNum: 1 | 2 = 1): Player {
     frame: 0,
     frameTimer: 0,
     moving: false,
-    shirtColor: playerNum === 1 ? OASIS.tealDark : '#D4A855', // Teal for P1, Gold for P2
+    shirtColor: playerNum === 1 ? '#7c5cfc' : '#f97316', // Purple for P1, Orange for P2
     fixes: 0
   };
 }

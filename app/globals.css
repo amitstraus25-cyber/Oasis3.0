@@ -9,7 +9,7 @@
 }
 
 body {
-  background: #12141e;
+  background: #0f0f1a;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -28,7 +28,8 @@ body {
 .game-canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  border: 2px solid #2a2e3a;
+  border: 2px solid rgba(124, 92, 252, 0.2);
+  border-radius: 4px;
   max-height: calc(100vh - 16px);
   max-width: calc(100vw - 16px);
 }

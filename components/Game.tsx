@@ -478,8 +478,8 @@ export default function Game() {
     sfxFix();
 
     const particleColor = playerNum === 1 
-      ? ['#14B8A6', '#5EEAD4', '#0D9488', '#99F6E4']
-      : ['#D4A855', '#F5D89A', '#B8942A', '#FFE4A0'];
+      ? ['#7c5cfc', '#a78bfa', '#c4b5fd', '#ddd6fe']
+      : ['#f97316', '#fb923c', '#fdba74', '#fed7aa'];
 
     for (let i = 0; i < 24; i++) {
       state.particles.push({
@@ -637,16 +637,23 @@ export default function Game() {
 
     // Show "Playing with camel!" message if blocked
     if (camelBlockTimer > 0) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(viewWidth / 2 - 90, 80, 180, 30);
-      ctx.fillStyle = '#FFD700';
+      ctx.fillStyle = 'rgba(15,15,26,0.85)';
+      ctx.beginPath();
+      ctx.roundRect(viewWidth / 2 - 85, 80, 170, 28, 6);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(viewWidth / 2 - 85, 80, 170, 28, 6);
+      ctx.stroke();
+      ctx.fillStyle = '#fb923c';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('🐪 Playing with camel! 🐪', viewWidth / 2, 100);
+      ctx.fillText('Playing with camel!', viewWidth / 2, 99);
       ctx.textAlign = 'left';
     }
 
-    // Player glow (coffee-colored when boosted)
+    // Player glow
     const pgx = player.x - camera.x + TILE / 2;
     const pgy = player.y - camera.y + TILE / 2 + 8;
     const glowR = 20 + Math.sin(state.tick * 0.08) * 3;
@@ -655,14 +662,14 @@ export default function Game() {
     let strokeColor: string;
     
     if (coffeeBoost > 0) {
-      glowColor = 'rgba(210,105,30,0.25)';
-      strokeColor = 'rgba(255,215,0,0.7)';
+      glowColor = 'rgba(249,115,22,0.2)';
+      strokeColor = 'rgba(251,146,60,0.6)';
     } else if (playerNum === 1) {
-      glowColor = 'rgba(20,184,166,0.15)';
-      strokeColor = 'rgba(94,234,212,0.5)';
+      glowColor = 'rgba(124,92,252,0.12)';
+      strokeColor = 'rgba(167,139,250,0.4)';
     } else {
-      glowColor = 'rgba(212,168,85,0.15)';
-      strokeColor = 'rgba(245,216,154,0.5)';
+      glowColor = 'rgba(249,115,22,0.12)';
+      strokeColor = 'rgba(251,146,60,0.4)';
     }
     
     ctx.fillStyle = glowColor;
@@ -670,7 +677,7 @@ export default function Game() {
     ctx.arc(pgx, pgy, (coffeeBoost > 0 ? glowR + 8 : glowR) + 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = coffeeBoost > 0 ? 3 : 2;
+    ctx.lineWidth = coffeeBoost > 0 ? 2 : 1;
     ctx.beginPath();
     ctx.arc(pgx, pgy, glowR, 0, Math.PI * 2);
     ctx.stroke();
@@ -692,19 +699,20 @@ export default function Game() {
       const bx = pgx - boostBarWidth / 2;
       const by = player.y - camera.y - 8;
       
-      // "COFFEE BOOST!" text
-      ctx.fillStyle = '#FFD700';
+      ctx.fillStyle = '#fb923c';
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('☕ BOOST!', pgx, by - 4);
+      ctx.fillText('BOOST!', pgx, by - 4);
       ctx.textAlign = 'left';
       
-      // Bar background
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(bx, by, boostBarWidth, 5);
-      // Bar fill
-      ctx.fillStyle = boostPct > 0.3 ? '#D2691E' : '#ff4444';
-      ctx.fillRect(bx, by, boostBarWidth * boostPct, 5);
+      ctx.fillStyle = 'rgba(15,15,26,0.6)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boostBarWidth, 7, 3);
+      ctx.fill();
+      ctx.fillStyle = boostPct > 0.3 ? '#f97316' : '#ff4444';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boostBarWidth * boostPct, 7, 3);
+      ctx.fill();
     }
 
     // Draw particles
@@ -734,58 +742,71 @@ export default function Game() {
       renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost);
       renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2);
       
-      // Divider line
-      ctx.fillStyle = '#333';
-      ctx.fillRect(SPLIT_VW - 2, 0, 4, VH);
+      // Divider line (subtle purple)
+      ctx.fillStyle = 'rgba(124,92,252,0.3)';
+      ctx.fillRect(SPLIT_VW - 1, 0, 2, VH);
       
-      // Minimap for Player 1 (bottom-right of left panel)
+      // Minimaps
       drawMinimap(ctx, state.map, state.issues, state.player, state.player2, {
         width: 90,
         posX: SPLIT_VW - 100,
-        playerColor: OASIS.tealLight,
-        player2Color: OASIS.gold
+        playerColor: '#a78bfa',
+        player2Color: '#fb923c'
       });
-      
-      // Minimap for Player 2 (bottom-right of right panel)
       drawMinimap(ctx, state.map, state.issues, state.player, state.player2, {
         width: 90,
         posX: VW - 100,
-        playerColor: OASIS.tealLight,
-        player2Color: OASIS.gold
+        playerColor: '#a78bfa',
+        player2Color: '#fb923c'
       });
       
       // Shared timer at top center
-      ctx.fillStyle = OASIS.navy + 'e0';
-      ctx.fillRect(VW / 2 - 60, 5, 120, 40);
-      ctx.strokeStyle = OASIS.teal;
-      ctx.strokeRect(VW / 2 - 60, 5, 120, 40);
+      ctx.fillStyle = 'rgba(15,15,26,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 60, 5, 120, 40, 8);
+      ctx.fill();
+      ctx.strokeStyle = state.timer < 15 ? 'rgba(255,85,85,0.5)' : 'rgba(124,92,252,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 60, 5, 120, 40, 8);
+      ctx.stroke();
       
       const mins = Math.floor(state.timer / 60);
       const secs = Math.floor(state.timer % 60);
       const ts = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-      ctx.fillStyle = state.timer < 15 ? '#ff5555' : OASIS.tealLight;
+      ctx.fillStyle = state.timer < 15 ? '#ff5555' : '#e8e5f0';
       ctx.font = 'bold 22px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(ts, VW / 2, 33);
       ctx.textAlign = 'left';
       
       // Player 1 score (left)
-      ctx.fillStyle = OASIS.navy + 'e0';
-      ctx.fillRect(10, 5, 100, 40);
-      ctx.strokeStyle = OASIS.teal;
-      ctx.strokeRect(10, 5, 100, 40);
-      ctx.fillStyle = OASIS.tealLight;
+      ctx.fillStyle = 'rgba(15,15,26,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(10, 5, 100, 40, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(124,92,252,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(10, 5, 100, 40, 8);
+      ctx.stroke();
+      ctx.fillStyle = '#a78bfa';
       ctx.font = 'bold 11px monospace';
       ctx.fillText('P1', 20, 22);
       ctx.font = 'bold 18px monospace';
       ctx.fillText(`${state.player.fixes}/${TOTAL_ISSUES}`, 20, 40);
       
       // Player 2 score (right)
-      ctx.fillStyle = OASIS.navy + 'e0';
-      ctx.fillRect(VW - 110, 5, 100, 40);
-      ctx.strokeStyle = OASIS.gold;
-      ctx.strokeRect(VW - 110, 5, 100, 40);
-      ctx.fillStyle = OASIS.gold;
+      ctx.fillStyle = 'rgba(15,15,26,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(VW - 110, 5, 100, 40, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(249,115,22,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(VW - 110, 5, 100, 40, 8);
+      ctx.stroke();
+      ctx.fillStyle = '#fb923c';
       ctx.font = 'bold 11px monospace';
       ctx.fillText('P2', VW - 100, 22);
       ctx.font = 'bold 18px monospace';

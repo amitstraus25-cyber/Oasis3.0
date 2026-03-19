@@ -362,7 +362,6 @@ export function drawCubicleLabels(
     const line1 = profile.id;
     const line2 = `${profile.kind} | ${profile.team} | R${profile.risk}`;
 
-    // Measure text widths with bigger fonts
     ctx.font = 'bold 12px monospace';
     const tw1 = ctx.measureText(line1).width;
     ctx.font = '11px monospace';
@@ -372,29 +371,32 @@ export function drawCubicleLabels(
     const lx = cx + (TILE - maxTw) / 2;
     const ly = cy + TILE + 2;
 
-    // Check if has issue
     const dk = `${c.deskX},${c.deskY}`;
     const dRef = deskMap.get(dk);
     const hasIssue = dRef && !dRef.fixed;
 
-    // Background box - Oasis navy
-    ctx.fillStyle = hasIssue ? 'rgba(40,25,20,0.95)' : OASIS.navy + 'f0';
-    ctx.fillRect(lx - 6, ly - 28, maxTw + 12, 32);
-    
-    // Border color based on status - Oasis teal for healthy
-    ctx.strokeStyle = hasIssue ? '#ff8844' : OASIS.teal;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(lx - 6, ly - 28, maxTw + 12, 32);
-    ctx.lineWidth = 1;
+    const boxX = lx - 8;
+    const boxY = ly - 30;
+    const boxW = maxTw + 16;
+    const boxH = 34;
 
-    // Line 1: NHI name - BIGGER
+    ctx.fillStyle = hasIssue ? 'rgba(25,15,20,0.88)' : 'rgba(15,15,26,0.85)';
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 5);
+    ctx.fill();
+    
+    ctx.strokeStyle = hasIssue ? '#f97316' : 'rgba(124,92,252,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 5);
+    ctx.stroke();
+
     ctx.font = 'bold 12px monospace';
-    ctx.fillStyle = hasIssue ? '#ff9955' : OASIS.tealLight;
+    ctx.fillStyle = hasIssue ? '#fb923c' : '#a78bfa';
     ctx.fillText(line1, lx, ly - 14);
 
-    // Line 2: kind | team | risk - BIGGER
     ctx.font = '11px monospace';
-    ctx.fillStyle = hasIssue ? '#ddaa77' : OASIS.teal;
+    ctx.fillStyle = hasIssue ? '#d4956a' : '#9892a6';
     ctx.fillText(line2, lx, ly - 1);
   }
 }
@@ -1007,15 +1009,20 @@ export function drawMinimap(
   const playerColor = options?.playerColor || '#00ffaa';
   const player2Color = options?.player2Color || '#FFD700';
 
-  ctx.fillStyle = 'rgba(0,0,0,0.72)';
-  ctx.fillRect(mx - 3, my - 3, mw + 6, mh + 6);
-  ctx.strokeStyle = 'rgba(68,170,100,0.25)';
-  ctx.strokeRect(mx - 3, my - 3, mw + 6, mh + 6);
+  ctx.fillStyle = 'rgba(15,15,26,0.82)';
+  ctx.beginPath();
+  ctx.roundRect(mx - 3, my - 3, mw + 6, mh + 6, 6);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124,92,252,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(mx - 3, my - 3, mw + 6, mh + 6, 6);
+  ctx.stroke();
   ctx.fillStyle = '#b0a878';
   ctx.fillRect(mx, my, mw, mh);
 
-  // Draw walls/outer first
-  ctx.fillStyle = 'rgba(106, 120, 136, 0.7)';
+  // Draw walls/outer
+  ctx.fillStyle = 'rgba(90, 80, 110, 0.7)';
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       if (map[y][x] === T.WALL || map[y][x] === T.OUTER) {
@@ -1024,24 +1031,21 @@ export function drawMinimap(
     }
   }
 
-  // Draw "OASIS" text on top so it's fully visible
-  ctx.fillStyle = OASIS.teal;
+  // Draw "OASIS" text
+  ctx.fillStyle = 'rgba(124,92,252,0.7)';
   ctx.font = `bold ${Math.floor(mw / 7)}px monospace`;
   ctx.textAlign = 'center';
   ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 4);
   ctx.textAlign = 'left';
 
-  // Draw issues
   for (const d of issues) {
     ctx.fillStyle = d.fixed ? '#44cc44' : '#ff4444';
     ctx.fillRect(mx + d.tileX * sx - 1, my + d.tileY * sy - 1, 4, 4);
   }
 
-  // Draw player 1
   ctx.fillStyle = playerColor;
   ctx.fillRect(mx + (player.x / TILE) * sx - 2, my + (player.y / TILE) * sy - 2, 5, 5);
 
-  // Draw player 2 if present
   if (player2) {
     ctx.fillStyle = player2Color;
     ctx.fillRect(mx + (player2.x / TILE) * sx - 2, my + (player2.y / TILE) * sy - 2, 5, 5);
@@ -1142,88 +1146,88 @@ export function drawHUD(
   nearbyIssue: Issue | null,
   tick: number
 ): void {
-  // Top left - Remediated count (Oasis navy style)
-  ctx.fillStyle = OASIS.navy + 'e0';
-  ctx.fillRect(6, 6, 220, 50);
-  ctx.strokeStyle = OASIS.teal;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(6, 6, 220, 50);
+  // Top left - Remediated count
+  ctx.fillStyle = 'rgba(15,15,26,0.88)';
+  ctx.beginPath();
+  ctx.roundRect(6, 6, 220, 50, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124,92,252,0.4)';
   ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(6, 6, 220, 50, 8);
+  ctx.stroke();
   
-  ctx.fillStyle = OASIS.tealLight;
+  ctx.fillStyle = '#e8e5f0';
   ctx.font = 'bold 17px monospace';
   ctx.fillText(`Remediated: ${fixed}/${TOTAL_ISSUES}`, 14, 30);
   
-  // Tagline
-  ctx.fillStyle = OASIS.teal;
+  ctx.fillStyle = '#9892a6';
   ctx.font = '10px monospace';
   ctx.fillText('Govern every non-human identity', 14, 46);
 
   // Top right - Timer with sand clock
   const timerBoxW = 120;
   const timerBoxH = 48;
-  ctx.fillStyle = OASIS.navy + 'e0';
-  ctx.fillRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH);
-  ctx.strokeStyle = timer < 30 ? '#ff5555' : OASIS.teal;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH);
+  ctx.fillStyle = 'rgba(15,15,26,0.88)';
+  ctx.beginPath();
+  ctx.roundRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH, 8);
+  ctx.fill();
+  ctx.strokeStyle = timer < 15 ? 'rgba(255,85,85,0.6)' : 'rgba(124,92,252,0.4)';
   ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH, 8);
+  ctx.stroke();
   
-  // Time text
   const mins = Math.floor(timer / 60);
   const secs = Math.floor(timer % 60);
   const ts = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  ctx.fillStyle = timer < 30 ? '#ff5555' : OASIS.tealLight;
+  ctx.fillStyle = timer < 15 ? '#ff5555' : '#e8e5f0';
   ctx.font = 'bold 18px monospace';
   ctx.fillText(ts, VW - timerBoxW + 6, 36);
   
-  // Sand clock (smaller)
   drawSandClock(ctx, VW - 48, 10, timer, tick);
 
-  // Bottom - Detailed issue info box (Oasis branded)
+  // Bottom - Detailed issue info box
   if (nearbyIssue) {
     const issueInfo = ISSUE_TYPES[nearbyIssue.type];
     const profile = nearbyIssue.cubicle.profile;
     
-    // Box dimensions
     const boxW = 520;
     const boxH = 90;
     const boxX = 10;
     const boxY = VH - boxH - 10;
 
-    // Background - Oasis navy
-    ctx.fillStyle = OASIS.navy + 'f5';
-    ctx.fillRect(boxX, boxY, boxW, boxH);
-    ctx.strokeStyle = OASIS.teal;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(boxX, boxY, boxW, boxH);
+    ctx.fillStyle = 'rgba(15,15,26,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(124,92,252,0.4)';
     ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    ctx.stroke();
 
-    // Line 1: SPACE -> Issue Name
-    ctx.fillStyle = OASIS.tealLight;
+    ctx.fillStyle = '#c4b5fd';
     ctx.font = 'bold 16px monospace';
-    ctx.fillText(`SPACE -> ${issueInfo.name}`, boxX + 14, boxY + 22);
+    ctx.fillText(`E / SPACE -> ${issueInfo.name}`, boxX + 14, boxY + 22);
 
-    // Line 2: Pillar | Risk
-    const riskColor = issueInfo.risk === 'CRIT' ? '#ff5555' : issueInfo.risk === 'High' ? '#ffaa44' : '#ffff66';
+    const riskColor = issueInfo.risk === 'CRIT' ? '#ff5555' : issueInfo.risk === 'High' ? '#fb923c' : '#fbbf24';
     ctx.fillStyle = riskColor;
     ctx.font = '13px monospace';
     ctx.fillText(`Pillar: ${issueInfo.pillar} | Risk: ${issueInfo.risk}`, boxX + 14, boxY + 42);
 
-    // Line 3: Target info
-    ctx.fillStyle = OASIS.teal;
+    ctx.fillStyle = '#a78bfa';
     ctx.font = '12px monospace';
     ctx.fillText(`Target: ${profile.id} (${profile.kind})`, boxX + 14, boxY + 60);
 
-    // Line 4: Description
-    ctx.fillStyle = '#8899aa';
+    ctx.fillStyle = '#9892a6';
     ctx.font = '11px monospace';
     ctx.fillText(issueInfo.desc, boxX + 14, boxY + 78);
   }
 
-  // Flash effect
+  // Flash effect (purple instead of green)
   if (flash > 0) {
-    ctx.fillStyle = `rgba(68,255,170,${flash / 28})`;
+    ctx.fillStyle = `rgba(124,92,252,${flash / 35})`;
     ctx.fillRect(0, 0, VW, VH);
   }
 
