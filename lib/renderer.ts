@@ -5,59 +5,51 @@ import type {
   TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions,
 } from './types';
 
-// OASIS letter patterns for floor branding (7 tiles wide, 9 tiles tall - BIG)
+// OASIS letter patterns for floor branding (5 tiles wide, 7 tiles tall - smaller to fit)
 const OASIS_LETTERS_BIG: Record<string, string[]> = {
   O: [
-    '0011100',
-    '0100010',
-    '1000001',
-    '1000001',
-    '1000001',
-    '1000001',
-    '1000001',
-    '0100010',
-    '0011100',
+    '01110',
+    '10001',
+    '10001',
+    '10001',
+    '10001',
+    '10001',
+    '01110',
   ],
   A: [
-    '0001000',
-    '0010100',
-    '0100010',
-    '0100010',
-    '1000001',
-    '1111111',
-    '1000001',
-    '1000001',
-    '1000001',
+    '00100',
+    '01010',
+    '10001',
+    '10001',
+    '11111',
+    '10001',
+    '10001',
   ],
   S: [
-    '0111110',
-    '1000001',
-    '1000000',
-    '0100000',
-    '0011100',
-    '0000010',
-    '0000001',
-    '1000001',
-    '0111110',
+    '01111',
+    '10000',
+    '10000',
+    '01110',
+    '00001',
+    '00001',
+    '11110',
   ],
   I: [
-    '1111111',
-    '0001000',
-    '0001000',
-    '0001000',
-    '0001000',
-    '0001000',
-    '0001000',
-    '0001000',
-    '1111111',
+    '11111',
+    '00100',
+    '00100',
+    '00100',
+    '00100',
+    '00100',
+    '11111',
   ],
 };
 
-// Check if tile is part of OASIS branding - BIG version across whole map
+// Check if tile is part of OASIS branding - smaller version to fit map
 function isOasisBrandTile(tx: number, ty: number): boolean {
   // Place "OASIS" centered on the map
-  const letterHeight = 9;
-  const letterWidth = 7;
+  const letterHeight = 7;
+  const letterWidth = 5;
   const letterSpacing = 2;
   const totalWidth = 5 * letterWidth + 4 * letterSpacing; // 5 letters, 4 gaps
   
@@ -912,9 +904,9 @@ export function drawMinimap(
 
   // Draw "OASIS" text on top so it's fully visible
   ctx.fillStyle = OASIS.teal;
-  ctx.font = 'bold 14px monospace';
+  ctx.font = 'bold 18px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 5);
+  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 6);
   ctx.textAlign = 'left';
 
   for (const d of issues) {
