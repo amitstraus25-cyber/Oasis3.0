@@ -72,16 +72,7 @@ function getOasisGradient(tx: number, ty: number): string {
   // Add checker pattern variation
   const checker = (tx + ty) % 2 === 0 ? 0 : -8;
   
-  // Oasis logo branding - purple tint for ring, lighter for waves
-  if (isOasisWaveTile(tx, ty)) {
-    r -= 20;
-    g -= 10;
-    b += 50;
-  } else if (isOasisBrandTile(tx, ty)) {
-    r -= 50;
-    g -= 20;
-    b += 40;
-  }
+  // No floor branding - logo is minimap only
   
   return `rgb(${r + checker},${g + checker},${b + checker})`;
 }
@@ -1036,18 +1027,18 @@ export function drawMinimap(
     }
   }
 
-  // Draw Oasis logo on minimap
-  const logoStartX = Math.floor((MAP_W - LOGO_SIZE) / 2);
-  const logoStartY = Math.floor((MAP_H - LOGO_SIZE) / 2);
+  // Draw Oasis logo filling the whole minimap background
+  const logoPixelW = mw / LOGO_SIZE;
+  const logoPixelH = mh / LOGO_SIZE;
   for (let ly = 0; ly < LOGO_SIZE; ly++) {
     for (let lx = 0; lx < LOGO_SIZE; lx++) {
       const val = OASIS_LOGO[ly][lx];
       if (val > 0) {
-        ctx.fillStyle = val === 2 ? 'rgba(167,139,250,0.5)' : 'rgba(124,92,252,0.4)';
+        ctx.fillStyle = val === 2 ? 'rgba(167,139,250,0.45)' : 'rgba(124,92,252,0.35)';
         ctx.fillRect(
-          mx + (logoStartX + lx) * sx,
-          my + (logoStartY + ly) * sy,
-          Math.ceil(sx), Math.ceil(sy)
+          mx + lx * logoPixelW,
+          my + ly * logoPixelH,
+          Math.ceil(logoPixelW), Math.ceil(logoPixelH)
         );
       }
     }
