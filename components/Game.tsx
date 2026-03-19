@@ -3,16 +3,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 import {
   TILE, MAP_W, MAP_H, VW, VH, T, WALKABLE,
-  PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES, OASIS,
+  PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES,
 } from '@/lib/constants';
 import type {
-  TileType, Player, NPC, Issue, Desk, Particle, SandParticle,
-  Camera, GameScreen,
+  TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen,
 } from '@/lib/types';
 import { generateMap, createPlayer, createNPCs, createIssues } from '@/lib/mapGenerator';
 import { initAudio, sfxFix, sfxWin, sfxLose } from '@/lib/audio';
 import {
-  drawTile, drawPerson, drawDeskLabel, drawIssue,
+  drawTile, drawCubicleLabels, drawPerson, drawIssue,
   drawHUD, drawParticles, drawTitle, drawEnd,
 } from '@/lib/renderer';
 
@@ -21,12 +20,12 @@ export default function Game() {
   const gameStateRef = useRef<{
     screen: GameScreen;
     map: TileType[][];
-    desks: Desk[];
+    cubicles: Cubicle[];
+    deskMap: Map<string, Issue>;
     player: Player | null;
     npcs: NPC[];
     issues: Issue[];
     particles: Particle[];
-    sandParticles: SandParticle[];
     timer: number;
     fixed: number;
     cooldown: number;
@@ -35,15 +34,16 @@ export default function Game() {
     camera: Camera;
     keys: Record<string, boolean>;
     lastTime: number;
+    nearbyIssue: Issue | null;
   }>({
     screen: 'title',
     map: [],
-    desks: [],
+    cubicles: [],
+    deskMap: new Map(),
     player: null,
     npcs: [],
     issues: [],
     particles: [],
-    sandParticles: [],
     timer: GAME_TIME,
     fixed: 0,
     cooldown: 0,
@@ -52,6 +52,7 @@ export default function Game() {
     camera: { x: 0, y: 0 },
     keys: {},
     lastTime: 0,
+    nearbyIssue: null,
   });
 
   const startGame = useCallback(() => {
@@ -63,22 +64,16 @@ export default function Game() {
     state.flash = 0;
     state.tick = 0;
     state.particles = [];
-    state.sandParticles = [];
+    state.nearbyIssue = null;
 
-    const { map, desks } = generateMap();
+    const { map, cubicles } = generateMap();
     state.map = map;
-    state.desks = desks;
-    state.player = createPlayer(map);
-    state.npcs = createNPCs(desks);
-    state.issues = createIssues(desks);
-
-    // Initialize camera
-    if (state.player) {
-      state.camera.x = state.player.x + TILE / 2 - VW / 2;
-      state.camera.y = state.player.y + TILE / 2 - VH / 2;
-      state.camera.x = Math.max(0, Math.min(MAP_W * TILE - VW, state.camera.x));
-      state.camera.y = Math.max(0, Math.min(MAP_H * TILE - VH, state.camera.y));
-    }
+    state.cubicles = cubicles;
+    state.player = createPlayer();
+    state.npcs = createNPCs(cubicles);
+    const { issues, deskMap } = createIssues(cubicles, state.npcs);
+    state.issues = issues;
+    state.deskMap = deskMap;
   }, []);
 
   const canWalk = useCallback((px: number, py: number): boolean => {
@@ -113,7 +108,7 @@ export default function Game() {
       }
 
       const spd = PLAYER_SPEED;
-      const pad = 5;
+      const pad = 10;
       const nx = state.player.x + dx * spd;
       const ny = state.player.y + dy * spd;
 
@@ -135,14 +130,14 @@ export default function Game() {
         state.player.y = ny;
       }
 
-      state.player.timer++;
-      if (state.player.timer >= 8) {
-        state.player.timer = 0;
+      state.player.frameTimer++;
+      if (state.player.frameTimer >= 7) {
+        state.player.frameTimer = 0;
         state.player.frame = 1 - state.player.frame;
       }
     } else {
       state.player.frame = 0;
-      state.player.timer = 0;
+      state.player.frameTimer = 0;
     }
   }, [canWalk]);
 
@@ -150,16 +145,10 @@ export default function Game() {
     const state = gameStateRef.current;
     if (!state.player) return;
 
-    const targetX = state.player.x + TILE / 2 - VW / 2;
-    const targetY = state.player.y + TILE / 2 - VH / 2;
-
-    state.camera.x += (targetX - state.camera.x) * 0.1;
-    state.camera.y += (targetY - state.camera.y) * 0.1;
-
-    const maxX = MAP_W * TILE - VW;
-    const maxY = MAP_H * TILE - VH;
-    state.camera.x = Math.max(0, Math.min(maxX, state.camera.x));
-    state.camera.y = Math.max(0, Math.min(maxY, state.camera.y));
+    state.camera.x = state.player.x + TILE / 2 - VW / 2;
+    state.camera.y = state.player.y + TILE / 2 - VH / 2;
+    state.camera.x = Math.max(0, Math.min(state.camera.x, MAP_W * TILE - VW));
+    state.camera.y = Math.max(0, Math.min(state.camera.y, MAP_H * TILE - VH));
   }, []);
 
   const updateParticles = useCallback(() => {
@@ -169,26 +158,75 @@ export default function Game() {
       const p = state.particles[i];
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.1;
+      p.vy += 0.08;
       p.life--;
       if (p.life <= 0) state.particles.splice(i, 1);
     }
+  }, []);
 
-    for (let i = state.sandParticles.length - 1; i >= 0; i--) {
-      const p = state.sandParticles[i];
-      p.y += p.vy;
-      p.life--;
-      if (p.life <= 0) state.sandParticles.splice(i, 1);
+  const spawnIssueParticles = useCallback(() => {
+    const state = gameStateRef.current;
+
+    for (const d of state.issues) {
+      if (d.fixed) continue;
+      const rate = d.type === 1 ? 3 : 7;
+      if (state.tick % rate !== 0) continue;
+      const px = d.x, py = d.y;
+
+      switch (d.type) {
+        case 0: // Coffee drip
+          state.particles.push({
+            x: px + 14 + Math.random() * 12, y: py + 18,
+            vx: (Math.random() - 0.5) * 0.6, vy: 0.8 + Math.random() * 0.5,
+            life: 14, maxLife: 14, color: '#886622', size: 2 + Math.random() * 2
+          });
+          break;
+        case 1: // Fire
+          state.particles.push({
+            x: px + 8 + Math.random() * 24, y: py + 24,
+            vx: (Math.random() - 0.5) * 1.5, vy: -2 - Math.random() * 2,
+            life: 18 + Math.random() * 10, maxLife: 28,
+            color: Math.random() > 0.4 ? '#ff4400' : '#ffaa00', size: 3 + Math.random() * 5
+          });
+          break;
+        case 7: // Keys falling
+          state.particles.push({
+            x: px + 10 + Math.random() * 20, y: py + 4,
+            vx: (Math.random() - 0.5) * 0.8, vy: 1.2 + Math.random(),
+            life: 16, maxLife: 16, color: '#5588ff', size: 2 + Math.random() * 2
+          });
+          break;
+        case 8: // Log particles
+          if (state.tick % 5 === 0) {
+            state.particles.push({
+              x: px + 6 + Math.random() * 28, y: py + 2,
+              vx: (Math.random() - 0.5) * 2, vy: -1.5 - Math.random(),
+              life: 22, maxLife: 22, color: '#44ff88', size: 2
+            });
+          }
+          break;
+      }
     }
+  }, []);
 
-    if (state.tick % 4 === 0 && state.timer > 0) {
-      state.sandParticles.push({
-        x: Math.random() * 6 - 3,
-        y: 0,
-        vy: 0.6 + Math.random() * 0.3,
-        life: 25,
-        size: 1.5,
-      });
+  const findNearbyIssue = useCallback(() => {
+    const state = gameStateRef.current;
+    if (!state.player) return;
+
+    const px = state.player.x + TILE / 2;
+    const py = state.player.y + TILE / 2;
+    state.nearbyIssue = null;
+    let best = FIX_RANGE + 1;
+
+    for (const d of state.issues) {
+      if (d.fixed) continue;
+      const dx = (d.x + TILE / 2) - px;
+      const dy = (d.y + TILE / 2) - py;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < best) {
+        best = dist;
+        state.nearbyIssue = d;
+      }
     }
   }, []);
 
@@ -203,9 +241,9 @@ export default function Game() {
 
     for (const issue of state.issues) {
       if (issue.fixed) continue;
-      const dist = Math.sqrt(
-        (issue.x + TILE / 2 - px) ** 2 + (issue.y + TILE / 2 - py) ** 2
-      );
+      const dx = (issue.x + TILE / 2) - px;
+      const dy = (issue.y + TILE / 2) - py;
+      const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < bestDist) {
         best = issue;
         bestDist = dist;
@@ -215,26 +253,32 @@ export default function Game() {
     if (!best) return;
 
     best.fixed = true;
-    best.desk.hasIssue = false;
     state.fixed++;
-    state.cooldown = 15;
-    state.flash = 12;
+    state.cooldown = 20;
+    state.flash = 14;
     sfxFix();
 
-    for (let i = 0; i < 15; i++) {
+    // Spawn fix particles
+    for (let i = 0; i < 24; i++) {
       state.particles.push({
         x: best.x + TILE / 2,
         y: best.y + TILE / 2,
         vx: (Math.random() - 0.5) * 5,
         vy: (Math.random() - 0.5) * 5 - 2,
-        life: 25 + Math.random() * 20,
-        color: [OASIS.teal, OASIS.tealLight, '#99F6E4'][Math.floor(Math.random() * 3)],
-        size: 3 + Math.random() * 4,
+        life: 25 + Math.random() * 25,
+        maxLife: 50,
+        color: ['#44ffaa', '#aaffee', '#ffffff', '#88ff44'][Math.floor(Math.random() * 4)],
+        size: 2 + Math.random() * 4,
       });
     }
 
+    // Update NPCs
     for (const npc of state.npcs) {
-      if (npc.desk === best.desk) npc.happy = 60;
+      if (npc.distractionRef === best) {
+        npc.state = 'working';
+        npc.distractionRef = null;
+        npc.happyTimer = 90;
+      }
     }
 
     if (state.fixed >= TOTAL_ISSUES) {
@@ -245,11 +289,11 @@ export default function Game() {
 
   const update = useCallback((dt: number) => {
     const state = gameStateRef.current;
-    state.tick++;
-
     if (state.screen !== 'playing') return;
 
+    state.tick++;
     state.timer -= dt;
+
     if (state.timer <= 0) {
       state.timer = 0;
       state.screen = 'lose';
@@ -263,79 +307,91 @@ export default function Game() {
     updatePlayer();
     updateCamera();
     updateParticles();
+    spawnIssueParticles();
+    findNearbyIssue();
 
-    for (const issue of state.issues) {
-      if (!issue.fixed) issue.anim++;
+    for (const d of state.issues) {
+      if (!d.fixed) d.animFrame++;
     }
 
     for (const npc of state.npcs) {
-      if (npc.happy > 0) npc.happy--;
-      if (state.tick % 15 === 0) npc.frame = 1 - npc.frame;
+      if (npc.happyTimer > 0) npc.happyTimer--;
+      if (state.tick % 12 === 0) npc.frame = 1 - npc.frame;
     }
-  }, [updatePlayer, updateCamera, updateParticles]);
+  }, [updatePlayer, updateCamera, updateParticles, spawnIssueParticles, findNearbyIssue]);
 
   const render = useCallback((ctx: CanvasRenderingContext2D) => {
     const state = gameStateRef.current;
     ctx.clearRect(0, 0, VW, VH);
 
     if (state.screen === 'title') {
-      drawTitle(ctx);
+      drawTitle(ctx, state.tick);
       return;
     }
 
     if (!state.player) return;
 
-    // Apply camera transform
-    ctx.save();
-    ctx.translate(-Math.round(state.camera.x), -Math.round(state.camera.y));
-
     // Draw visible tiles
-    const startTX = Math.max(0, Math.floor(state.camera.x / TILE));
-    const startTY = Math.max(0, Math.floor(state.camera.y / TILE));
-    const endTX = Math.min(MAP_W, Math.ceil((state.camera.x + VW) / TILE) + 1);
-    const endTY = Math.min(MAP_H, Math.ceil((state.camera.y + VH) / TILE) + 1);
+    const sy = Math.max(0, Math.floor(state.camera.y / TILE));
+    const ey = Math.min(MAP_H - 1, Math.ceil((state.camera.y + VH) / TILE));
+    const sx = Math.max(0, Math.floor(state.camera.x / TILE));
+    const ex = Math.min(MAP_W - 1, Math.ceil((state.camera.x + VW) / TILE));
 
-    for (let ty = startTY; ty < endTY; ty++) {
-      for (let tx = startTX; tx < endTX; tx++) {
-        drawTile(ctx, state.map, state.desks, tx, ty);
+    for (let ty = sy; ty <= ey; ty++) {
+      for (let tx = sx; tx <= ex; tx++) {
+        drawTile(ctx, state.map, state.deskMap, tx, ty, state.camera);
       }
     }
 
+    // Draw cubicle labels
+    drawCubicleLabels(ctx, state.cubicles, state.deskMap, state.camera);
+
     // Draw issues
     for (const issue of state.issues) {
-      drawIssue(ctx, issue);
+      drawIssue(ctx, issue, state.camera);
     }
 
-    // Draw NPCs with labels
+    // Draw NPCs
     for (const npc of state.npcs) {
-      drawPerson(ctx, npc.x, npc.y, {
-        color: npc.color,
+      drawPerson(ctx, npc.x, npc.y, state.camera, state.tick, {
+        sitting: npc.state === 'working',
+        typing: npc.state === 'working',
+        shirtColor: npc.shirtColor,
+        hairColor: npc.hairColor,
         frame: npc.frame,
-        happy: npc.happy,
+        happyTimer: npc.happyTimer,
+        distracted: npc.state === 'distracted'
       });
-      drawDeskLabel(ctx, npc, state.issues);
     }
 
     // Player glow
-    ctx.fillStyle = 'rgba(20,184,166,0.2)';
+    const pgx = state.player.x - state.camera.x + TILE / 2;
+    const pgy = state.player.y - state.camera.y + TILE / 2 + 8;
+    const glowR = 20 + Math.sin(state.tick * 0.08) * 3;
+    ctx.fillStyle = 'rgba(0,255,170,0.15)';
     ctx.beginPath();
-    ctx.arc(state.player.x + TILE / 2, state.player.y + TILE / 2, 22, 0, Math.PI * 2);
+    ctx.arc(pgx, pgy, glowR + 5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(0,255,170,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(pgx, pgy, glowR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
 
     // Draw player
-    drawPerson(ctx, state.player.x, state.player.y, {
+    drawPerson(ctx, state.player.x, state.player.y, state.camera, state.tick, {
       isPlayer: true,
-      color: OASIS.teal,
+      shirtColor: '#00aaaa',
+      hairColor: '#443311',
       walking: state.player.moving,
-      frame: state.player.frame,
+      frame: state.player.frame
     });
 
     // Draw particles
-    drawParticles(ctx, state.particles);
+    drawParticles(ctx, state.particles, state.camera);
 
-    ctx.restore();
-
-    // Draw HUD (screen space)
+    // Draw HUD
     drawHUD(
       ctx,
       state.timer,
@@ -344,8 +400,8 @@ export default function Game() {
       state.map,
       state.issues,
       state.player,
-      state.camera,
-      state.sandParticles
+      state.nearbyIssue,
+      state.tick
     );
 
     // Draw end screens
@@ -403,6 +459,7 @@ export default function Game() {
       if ((state.screen === 'win' || state.screen === 'lose') && (e.code === 'Enter' || e.code === 'Space')) {
         e.preventDefault();
         state.screen = 'title';
+        state.camera = { x: 0, y: 0 };
       }
 
       if (state.screen === 'playing' && e.code === 'Space') {

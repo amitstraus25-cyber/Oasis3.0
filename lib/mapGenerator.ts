@@ -1,154 +1,147 @@
-import {
-  TILE, MAP_W, MAP_H, T, NHI_PROFILES, TOTAL_ISSUES,
-  LETTER_PATTERNS, LETTER_POSITIONS,
-  DESK_POSITIONS, POOL_Y, POOL_X_START, POOL_X_END,
-  CACTUS_POSITIONS, PALM_POSITIONS, NPC_COLORS,
-} from './constants';
-import type { TileType, Desk, Player, NPC, Issue } from './types';
+import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES } from './constants';
+import type { TileType, Cubicle, Player, NPC, Issue } from './types';
 
-export function generateMap(): { map: TileType[][], desks: Desk[] } {
+export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
   const map: TileType[][] = [];
-  const desks: Desk[] = [];
+  const cubicles: Cubicle[] = [];
 
-  // Fill with floor
+  // Initialize floor
   for (let y = 0; y < MAP_H; y++) {
     map[y] = [];
     for (let x = 0; x < MAP_W; x++) {
-      map[y][x] = (x === 0 || y === 0 || x === MAP_W - 1 || y === MAP_H - 1) 
-        ? T.OUTER as TileType 
-        : T.FLOOR as TileType;
+      map[y][x] = T.FLOOR;
     }
   }
 
-  // Place OASIS letters
-  const { topY, botY, oX, aX, s1X, iX, s2X } = LETTER_POSITIONS;
-  
-  placeLetter(map, LETTER_PATTERNS.O, oX, topY);
-  placeLetter(map, LETTER_PATTERNS.A, aX, topY);
-  placeLetter(map, LETTER_PATTERNS.S, s1X, botY);
-  placeLetter(map, LETTER_PATTERNS.I, iX, botY);
-  placeLetter(map, LETTER_PATTERNS.S, s2X, botY);
+  // Outer walls
+  for (let x = 0; x < MAP_W; x++) {
+    map[0][x] = T.OUTER;
+    map[MAP_H - 1][x] = T.OUTER;
+  }
+  for (let y = 0; y < MAP_H; y++) {
+    map[y][0] = T.OUTER;
+    map[y][MAP_W - 1] = T.OUTER;
+  }
 
-  // Add desks
-  for (const [dx, dy] of DESK_POSITIONS) {
-    if (dx > 0 && dx < MAP_W - 1 && dy > 0 && dy < MAP_H - 1 && map[dy][dx] === T.FLOOR) {
-      addDesk(map, desks, dx, dy);
+  // Cubicle grid
+  const sX = 3, sY = 3, gX = 5, gY = 5;
+  const skipCol = 3, skipRow = 2;
+  const shuffledProfiles = [...NHI_PROFILES].sort(() => Math.random() - 0.5);
+  let ni = 0;
+
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 7; col++) {
+      if (col === skipCol || row === skipRow) continue;
+      const tx = sX + col * gX;
+      const ty = sY + row * gY;
+      if (tx + 3 > MAP_W - 2 || ty + 3 > MAP_H - 2) continue;
+
+      // Cubicle walls
+      map[ty][tx] = T.WALL;
+      map[ty][tx + 1] = T.WALL;
+      map[ty][tx + 2] = T.WALL;
+      map[ty + 1][tx] = T.WALL;
+      map[ty + 2][tx] = T.WALL;
+      map[ty + 1][tx + 1] = T.DESK;
+
+      const profile = shuffledProfiles[ni % shuffledProfiles.length];
+      cubicles.push({
+        x: tx,
+        y: ty,
+        deskX: tx + 1,
+        deskY: ty + 1,
+        openX: tx + 2,
+        openY: ty + 2,
+        label: profile.id,
+        profile: profile
+      });
+      ni++;
     }
   }
 
-  // Oasis pool
-  for (let x = POOL_X_START; x <= POOL_X_END; x++) {
-    if (map[POOL_Y][x] === T.FLOOR) {
-      map[POOL_Y][x] = T.POOL as TileType;
+  // Plants along hallways
+  const hallY = sY + skipRow * gY;
+  const hallX = sX + skipCol * gX;
+  for (let x = 2; x < MAP_W - 2; x += 7) {
+    if (hallY < MAP_H && map[hallY][x] === T.FLOOR) {
+      map[hallY][x] = T.PLANT;
+    }
+  }
+  for (let y = 2; y < MAP_H - 2; y += 8) {
+    if (hallX < MAP_W && map[y][hallX] === T.FLOOR) {
+      map[y][hallX] = T.PLANT;
     }
   }
 
-  // Cactuses
-  for (const [x, y] of CACTUS_POSITIONS) {
-    if (map[y][x] === T.FLOOR) {
-      map[y][x] = T.CACTUS as TileType;
-    }
+  // Water coolers
+  if (hallY + 1 < MAP_H && hallX + 2 < MAP_W && map[hallY + 1][hallX + 2] === T.FLOOR) {
+    map[hallY + 1][hallX + 2] = T.COOLER;
+  }
+  if (hallY + 1 < MAP_H && 3 < MAP_W && map[hallY + 1][3] === T.FLOOR) {
+    map[hallY + 1][3] = T.COOLER;
   }
 
-  // Palm trees
-  for (const [x, y] of PALM_POSITIONS) {
-    if (map[y][x] === T.FLOOR) {
-      map[y][x] = T.PALM as TileType;
-    }
-  }
-
-  return { map, desks };
+  return { map, cubicles };
 }
 
-function placeLetter(map: TileType[][], pattern: string[], sx: number, sy: number): void {
-  for (let y = 0; y < 5; y++) {
-    for (let x = 0; x < 5; x++) {
-      if (pattern[y][x] === '1') {
-        const tx = sx + x;
-        const ty = sy + y;
-        if (tx > 0 && tx < MAP_W - 1 && ty > 0 && ty < MAP_H - 1) {
-          map[ty][tx] = T.WALL as TileType;
-        }
-      }
-    }
-  }
-}
-
-function addDesk(map: TileType[][], desks: Desk[], x: number, y: number): void {
-  map[y][x] = T.DESK as TileType;
-  const prof = NHI_PROFILES[desks.length % NHI_PROFILES.length];
-
-  // Find adjacent floor for NPC - prioritize BELOW desk
-  let nx = x, ny = y;
-  for (const [dx, dy] of [[0, 1], [0, -1], [-1, 0], [1, 0]]) {
-    if (map[y + dy] && map[y + dy][x + dx] === T.FLOOR) {
-      nx = x + dx;
-      ny = y + dy;
-      break;
-    }
-  }
-
-  desks.push({ x, y, nx, ny, profile: prof, hasIssue: false });
-}
-
-export function createPlayer(map: TileType[][]): Player {
-  const sx = Math.floor(MAP_W / 2);
-  const sy = MAP_H - 3;
-
-  let fx = sx, fy = sy;
-  outer: for (let r = 0; r < 10; r++) {
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        const cx = sx + dx;
-        const cy = sy + dy;
-        if (cy > 0 && cy < MAP_H - 1 && cx > 0 && cx < MAP_W - 1 && map[cy][cx] === T.FLOOR) {
-          fx = cx;
-          fy = cy;
-          break outer;
-        }
-      }
-    }
-  }
-
+export function createPlayer(): Player {
   return {
-    x: fx * TILE,
-    y: fy * TILE,
+    x: (MAP_W / 2) * TILE,
+    y: (MAP_H / 2) * TILE,
     dir: 0,
     frame: 0,
-    timer: 0,
-    moving: false,
+    frameTimer: 0,
+    moving: false
   };
 }
 
-export function createNPCs(desks: Desk[]): NPC[] {
-  return desks.map((d, i) => ({
-    x: d.nx * TILE,
-    y: d.ny * TILE,
-    desk: d,
-    color: NPC_COLORS[i % NPC_COLORS.length],
+export function createNPCs(cubicles: Cubicle[]): NPC[] {
+  return cubicles.map(c => ({
+    tileX: c.deskX,
+    tileY: c.deskY,
+    x: c.deskX * TILE,
+    y: c.deskY * TILE,
+    state: 'working' as const,
+    shirtColor: SHIRT_COLORS[Math.floor(Math.random() * SHIRT_COLORS.length)],
+    hairColor: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
     frame: 0,
-    happy: 0,
+    distractionRef: null,
+    happyTimer: 0
   }));
 }
 
-export function createIssues(desks: Desk[]): Issue[] {
+export function createIssues(cubicles: Cubicle[], npcs: NPC[]): { issues: Issue[], deskMap: Map<string, Issue> } {
+  const shuffled = [...cubicles].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, TOTAL_ISSUES);
   const issues: Issue[] = [];
-  const shuffled = [...desks].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(TOTAL_ISSUES, desks.length));
+  const deskMap = new Map<string, Issue>();
 
-  selected.forEach((d, i) => {
-    d.hasIssue = true;
-    issues.push({
+  for (let i = 0; i < selected.length; i++) {
+    const c = selected[i];
+    const issue: Issue = {
       type: i,
-      x: d.x * TILE,
-      y: d.y * TILE,
-      tx: d.x,
-      ty: d.y,
-      desk: d,
+      tileX: c.openX,
+      tileY: c.openY,
+      x: c.openX * TILE,
+      y: c.openY * TILE,
       fixed: false,
-      anim: 0,
-    });
-  });
+      animFrame: 0,
+      cubicle: c
+    };
+    issues.push(issue);
+    deskMap.set(`${c.deskX},${c.deskY}`, issue);
+  }
 
-  return issues;
+  // Link NPCs to their issues
+  for (const issue of issues) {
+    for (const npc of npcs) {
+      const dist = Math.abs(npc.tileX - issue.tileX) + Math.abs(npc.tileY - issue.tileY);
+      if (dist <= 3 && !npc.distractionRef) {
+        npc.state = 'distracted';
+        npc.distractionRef = issue;
+      }
+    }
+  }
+
+  return { issues, deskMap };
 }

@@ -1,50 +1,54 @@
+export type TileType = 0 | 1 | 2 | 3 | 4 | 5;
+
 export interface Player {
   x: number;
   y: number;
   dir: number;
   frame: number;
-  timer: number;
+  frameTimer: number;
   moving: boolean;
 }
 
 export interface NHIProfile {
   id: string;
-  kind: 'automation' | 'agent' | 'bot' | 'workload' | 'svc-acct';
+  kind: string;
+  team: string;
   risk: number;
 }
 
-export interface Desk {
+export interface Cubicle {
   x: number;
   y: number;
-  nx: number;
-  ny: number;
+  deskX: number;
+  deskY: number;
+  openX: number;
+  openY: number;
+  label: string;
   profile: NHIProfile;
-  hasIssue: boolean;
 }
 
 export interface NPC {
+  tileX: number;
+  tileY: number;
   x: number;
   y: number;
-  desk: Desk;
-  color: string;
+  state: 'working' | 'distracted';
+  shirtColor: string;
+  hairColor: string;
   frame: number;
-  happy: number;
-}
-
-export interface IssueType {
-  name: string;
-  sev: 'CRIT' | 'HIGH' | 'MED';
+  distractionRef: Issue | null;
+  happyTimer: number;
 }
 
 export interface Issue {
   type: number;
+  tileX: number;
+  tileY: number;
   x: number;
   y: number;
-  tx: number;
-  ty: number;
-  desk: Desk;
   fixed: boolean;
-  anim: number;
+  animFrame: number;
+  cubicle: Cubicle;
 }
 
 export interface Particle {
@@ -53,15 +57,8 @@ export interface Particle {
   vx: number;
   vy: number;
   life: number;
+  maxLife: number;
   color: string;
-  size: number;
-}
-
-export interface SandParticle {
-  x: number;
-  y: number;
-  vy: number;
-  life: number;
   size: number;
 }
 
@@ -70,33 +67,16 @@ export interface Camera {
   y: number;
 }
 
-export type TileType = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
 export type GameScreen = 'title' | 'playing' | 'win' | 'lose';
 
-export interface GameState {
-  screen: GameScreen;
-  map: TileType[][];
-  desks: Desk[];
-  player: Player | null;
-  npcs: NPC[];
-  issues: Issue[];
-  particles: Particle[];
-  sandParticles: SandParticle[];
-  timer: number;
-  fixed: number;
-  cooldown: number;
-  tick: number;
-  flash: number;
-  camera: Camera;
-  keys: Record<string, boolean>;
-}
-
 export interface DrawPersonOptions {
-  color?: string;
-  walking?: boolean;
-  frame?: number;
-  happy?: number;
-  hair?: string;
   isPlayer?: boolean;
+  sitting?: boolean;
+  typing?: boolean;
+  walking?: boolean;
+  shirtColor?: string;
+  hairColor?: string;
+  frame?: number;
+  happyTimer?: number;
+  distracted?: boolean;
 }
