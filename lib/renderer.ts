@@ -1391,13 +1391,13 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
   ctx.fillText('↑ You (Oasis Security Agent)', VW / 2, 275);
 
   // Stats row from website (3 cards)
-  const statY = 290;
+  const statY = 284;
   const stats = [
-    { val: '20-50x', label: 'more NHIs than', label2: 'human identities' },
-    { val: '$4.88M', label: 'avg. cost of', label2: 'a data breach' },
-    { val: '90%+', label: 'of identity fabric', label2: 'is non-human' },
+    { val: '20–50x', label: 'NHIs represent', label2: 'more identities' },
+    { val: '$4.88M', label: 'average cost', label2: 'of data breach (IBM)' },
+    { val: '90%+', label: 'of today’s identity', label2: 'fabric is non-human' },
   ];
-  const cardW = 130, cardGap = 12;
+  const cardW = 142, cardGap = 12;
   const totalW = stats.length * cardW + (stats.length - 1) * cardGap;
   const startX = VW / 2 - totalW / 2;
   
@@ -1405,21 +1405,27 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     const cx = startX + i * (cardW + cardGap);
     ctx.fillStyle = OB.bgCard + 'cc';
     ctx.beginPath();
-    ctx.roundRect(cx, statY, cardW, 60, 8);
+    ctx.roundRect(cx, statY, cardW, 68, 8);
     ctx.fill();
     ctx.strokeStyle = OB.purple + '25';
     ctx.beginPath();
-    ctx.roundRect(cx, statY, cardW, 60, 8);
+    ctx.roundRect(cx, statY, cardW, 68, 8);
     ctx.stroke();
     
     ctx.fillStyle = OB.purpleLight;
     ctx.font = 'bold 20px monospace';
     ctx.fillText(stats[i].val, cx + cardW / 2, statY + 22);
     ctx.fillStyle = OB.textMuted;
-    ctx.font = '9px monospace';
-    ctx.fillText(stats[i].label, cx + cardW / 2, statY + 38);
-    ctx.fillText(stats[i].label2, cx + cardW / 2, statY + 49);
+    ctx.font = '8px monospace';
+    ctx.fillText(stats[i].label, cx + cardW / 2, statY + 40);
+    ctx.fillText(stats[i].label2, cx + cardW / 2, statY + 52);
   }
+
+  // Full statements (not truncated fragments), sourced from oasis.security/why-oasis
+  ctx.fillStyle = OB.textSecondary;
+  ctx.font = '10px monospace';
+  ctx.fillText('NHIs represent 20 to 50x more identities growing at 20% YoY.', VW / 2, 368);
+  ctx.fillText('NHIs constitute more than 90% of today’s identity fabric, but are ungoverned.', VW / 2, 382);
 
   // Instructions
   ctx.fillStyle = OB.textSecondary;
@@ -1430,7 +1436,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     'NHIs have security issues. Fix them all!',
     'Watch out for noisy decoys that waste your time.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 378 + i * 17));
+  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 402 + i * 17));
 
   // Tagline
   ctx.fillStyle = OB.textMuted;
