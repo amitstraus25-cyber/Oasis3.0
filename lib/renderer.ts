@@ -72,7 +72,16 @@ function getOasisGradient(tx: number, ty: number): string {
   // Add checker pattern variation
   const checker = (tx + ty) % 2 === 0 ? 0 : -8;
   
-  // No floor branding - logo is minimap only
+  // Oasis logo branding on floor - purple tint for ring, lighter for waves
+  if (isOasisWaveTile(tx, ty)) {
+    r -= 20;
+    g -= 10;
+    b += 50;
+  } else if (isOasisBrandTile(tx, ty)) {
+    r -= 50;
+    g -= 20;
+    b += 40;
+  }
   
   return `rgb(${r + checker},${g + checker},${b + checker})`;
 }
