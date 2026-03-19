@@ -258,7 +258,7 @@ export default function Game() {
     state.flash = 14;
     sfxFix();
 
-    // Spawn fix particles
+    // Spawn fix particles (Oasis teal colors)
     for (let i = 0; i < 24; i++) {
       state.particles.push({
         x: best.x + TILE / 2,
@@ -267,7 +267,7 @@ export default function Game() {
         vy: (Math.random() - 0.5) * 5 - 2,
         life: 25 + Math.random() * 25,
         maxLife: 50,
-        color: ['#44ffaa', '#aaffee', '#ffffff', '#88ff44'][Math.floor(Math.random() * 4)],
+        color: ['#14B8A6', '#5EEAD4', '#0D9488', '#99F6E4'][Math.floor(Math.random() * 4)],
         size: 2 + Math.random() * 4,
       });
     }
@@ -364,25 +364,25 @@ export default function Game() {
       });
     }
 
-    // Player glow
+    // Player glow (Oasis teal)
     const pgx = state.player.x - state.camera.x + TILE / 2;
     const pgy = state.player.y - state.camera.y + TILE / 2 + 8;
     const glowR = 20 + Math.sin(state.tick * 0.08) * 3;
-    ctx.fillStyle = 'rgba(0,255,170,0.15)';
+    ctx.fillStyle = 'rgba(20,184,166,0.15)';
     ctx.beginPath();
     ctx.arc(pgx, pgy, glowR + 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0,255,170,0.45)';
+    ctx.strokeStyle = 'rgba(94,234,212,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(pgx, pgy, glowR, 0, Math.PI * 2);
     ctx.stroke();
     ctx.lineWidth = 1;
 
-    // Draw player
+    // Draw player (Oasis teal shirt)
     drawPerson(ctx, state.player.x, state.player.y, state.camera, state.tick, {
       isPlayer: true,
-      shirtColor: '#00aaaa',
+      shirtColor: '#0D9488',
       hairColor: '#443311',
       walking: state.player.moving,
       frame: state.player.frame

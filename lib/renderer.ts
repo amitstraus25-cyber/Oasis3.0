@@ -1,5 +1,5 @@
 import {
-  TILE, MAP_W, MAP_H, VW, VH, T, COL, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES,
+  TILE, MAP_W, MAP_H, VW, VH, T, COL, OASIS, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES,
 } from './constants';
 import type {
   TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions,
@@ -109,15 +109,20 @@ export function drawTile(
     }
 
     case T.OUTER:
+      // Sandy desert dunes
       ctx.fillStyle = COL.outer;
       ctx.fillRect(sx, sy, TILE, TILE);
+      // Dune texture
       ctx.fillStyle = COL.outerTop;
-      ctx.fillRect(sx, sy, TILE, 3);
-      if ((tx * 7 + ty * 3) % 6 === 0) {
-        ctx.fillStyle = '#2a3a50';
-        ctx.fillRect(sx + 8, sy + 8, 24, 22);
-        ctx.fillStyle = '#3a5070';
-        ctx.fillRect(sx + 10, sy + 10, 20, 18);
+      ctx.fillRect(sx, sy, TILE, 4);
+      ctx.fillStyle = COL.outerDark;
+      ctx.fillRect(sx, sy + TILE - 4, TILE, 4);
+      // Sand grain dots
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      for (let i = 0; i < 4; i++) {
+        const gx = ((tx * 7 + i * 11) % 30) + 5;
+        const gy = ((ty * 13 + i * 7) % 28) + 6;
+        ctx.fillRect(sx + gx, sy + gy, 2, 2);
       }
       break;
 
@@ -143,8 +148,101 @@ export function drawTile(
       ctx.fillRect(sx + 10, sy + 4, 20, 30);
       ctx.fillStyle = '#c0ccd4';
       ctx.fillRect(sx + 10, sy + 4, 20, 4);
-      ctx.fillStyle = '#4499ee';
+      ctx.fillStyle = OASIS.teal;
       ctx.fillRect(sx + 14, sy + 12, 12, 14);
+      break;
+
+    case T.PALM:
+      // Palm tree on floor
+      ctx.fillStyle = getOasisGradient(tx, ty);
+      ctx.fillRect(sx, sy, TILE, TILE);
+      // Trunk
+      ctx.fillStyle = '#8B5A2B';
+      ctx.fillRect(sx + 16, sy + 18, 8, 20);
+      ctx.fillStyle = '#6B4423';
+      ctx.fillRect(sx + 18, sy + 18, 2, 20);
+      // Fronds (palm leaves)
+      ctx.fillStyle = OASIS.tealDark;
+      // Left fronds
+      ctx.beginPath();
+      ctx.moveTo(sx + 20, sy + 16);
+      ctx.quadraticCurveTo(sx + 4, sy + 8, sx + 2, sy + 18);
+      ctx.quadraticCurveTo(sx + 6, sy + 12, sx + 20, sy + 18);
+      ctx.fill();
+      // Right fronds
+      ctx.beginPath();
+      ctx.moveTo(sx + 20, sy + 16);
+      ctx.quadraticCurveTo(sx + 36, sy + 8, sx + 38, sy + 18);
+      ctx.quadraticCurveTo(sx + 34, sy + 12, sx + 20, sy + 18);
+      ctx.fill();
+      // Top fronds
+      ctx.fillStyle = OASIS.teal;
+      ctx.beginPath();
+      ctx.moveTo(sx + 20, sy + 14);
+      ctx.quadraticCurveTo(sx + 10, sy + 2, sx + 6, sy + 10);
+      ctx.quadraticCurveTo(sx + 12, sy + 8, sx + 20, sy + 16);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx + 20, sy + 14);
+      ctx.quadraticCurveTo(sx + 30, sy + 2, sx + 34, sy + 10);
+      ctx.quadraticCurveTo(sx + 28, sy + 8, sx + 20, sy + 16);
+      ctx.fill();
+      // Coconuts
+      ctx.fillStyle = '#5D4422';
+      ctx.beginPath();
+      ctx.arc(sx + 17, sy + 17, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 23, sy + 17, 3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+
+    case T.CACTUS:
+      // Cactus on sand
+      ctx.fillStyle = COL.outer;
+      ctx.fillRect(sx, sy, TILE, TILE);
+      ctx.fillStyle = COL.outerTop;
+      ctx.fillRect(sx, sy, TILE, 4);
+      // Cactus body
+      ctx.fillStyle = '#4A7C4E';
+      ctx.fillRect(sx + 14, sy + 8, 12, 28);
+      // Left arm
+      ctx.fillRect(sx + 6, sy + 14, 8, 6);
+      ctx.fillRect(sx + 6, sy + 10, 4, 10);
+      // Right arm
+      ctx.fillRect(sx + 26, sy + 18, 8, 6);
+      ctx.fillRect(sx + 30, sy + 14, 4, 10);
+      // Highlights
+      ctx.fillStyle = '#5A9C5E';
+      ctx.fillRect(sx + 16, sy + 8, 3, 28);
+      ctx.fillRect(sx + 8, sy + 14, 2, 6);
+      ctx.fillRect(sx + 28, sy + 18, 2, 6);
+      // Spines (dots)
+      ctx.fillStyle = '#2A4C2E';
+      for (let i = 0; i < 5; i++) {
+        ctx.fillRect(sx + 22, sy + 10 + i * 5, 2, 1);
+        ctx.fillRect(sx + 14, sy + 12 + i * 5, 1, 2);
+      }
+      break;
+
+    case T.WATER:
+      // Oasis water pool
+      ctx.fillStyle = getOasisGradient(tx, ty);
+      ctx.fillRect(sx, sy, TILE, TILE);
+      // Water
+      ctx.fillStyle = OASIS.waterDark;
+      ctx.beginPath();
+      ctx.ellipse(sx + TILE / 2, sy + TILE / 2, TILE / 2 - 2, TILE / 2 - 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Lighter water highlight
+      ctx.fillStyle = OASIS.water;
+      ctx.beginPath();
+      ctx.ellipse(sx + TILE / 2 - 4, sy + TILE / 2 - 4, TILE / 4, TILE / 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Sparkle
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(sx + 12, sy + 10, 3, 3);
+      ctx.fillRect(sx + 24, sy + 16, 2, 2);
       break;
   }
 }
@@ -175,29 +273,29 @@ export function drawCubicleLabels(
     const lx = cx + (TILE - maxTw) / 2;
     const ly = cy + TILE + 2;
 
-    // Background box - bigger and more visible
-    ctx.fillStyle = 'rgba(10,24,16,0.92)';
-    ctx.fillRect(lx - 6, ly - 28, maxTw + 12, 32);
-    
     // Check if has issue
     const dk = `${c.deskX},${c.deskY}`;
     const dRef = deskMap.get(dk);
     const hasIssue = dRef && !dRef.fixed;
+
+    // Background box - Oasis navy
+    ctx.fillStyle = hasIssue ? 'rgba(40,25,20,0.95)' : OASIS.navy + 'f0';
+    ctx.fillRect(lx - 6, ly - 28, maxTw + 12, 32);
     
-    // Border color based on status
-    ctx.strokeStyle = hasIssue ? 'rgba(255,136,68,0.7)' : 'rgba(68,170,100,0.5)';
+    // Border color based on status - Oasis teal for healthy
+    ctx.strokeStyle = hasIssue ? '#ff8844' : OASIS.teal;
     ctx.lineWidth = 2;
     ctx.strokeRect(lx - 6, ly - 28, maxTw + 12, 32);
     ctx.lineWidth = 1;
 
     // Line 1: NHI name - BIGGER
     ctx.font = 'bold 12px monospace';
-    ctx.fillStyle = hasIssue ? '#ff9955' : '#66eebb';
+    ctx.fillStyle = hasIssue ? '#ff9955' : OASIS.tealLight;
     ctx.fillText(line1, lx, ly - 14);
 
     // Line 2: kind | team | risk - BIGGER
     ctx.font = '11px monospace';
-    ctx.fillStyle = hasIssue ? '#ddaa77' : '#99ccbb';
+    ctx.fillStyle = hasIssue ? '#ddaa77' : OASIS.teal;
     ctx.fillText(line2, lx, ly - 1);
   }
 }
@@ -288,11 +386,12 @@ export function drawPerson(
   ctx.fillRect(cx + 4 * s, y + 5 * s, s, s);
   ctx.fillRect(cx + 7 * s, y + 5 * s, s, s);
 
-  // Oasis logo on player shirt
+  // Oasis logo on player shirt (teal "O" logo)
   if (opts.isPlayer) {
-    ctx.fillStyle = '#00ffaa';
+    ctx.fillStyle = OASIS.tealLight;
     const bx = cx + 3 * s;
     const by = y + 9 * s;
+    // "O" shape for Oasis
     ctx.fillRect(bx + s, by, 3 * s, s);
     ctx.fillRect(bx + s, by + 2 * s, 3 * s, s);
     ctx.fillRect(bx, by + s, s, s);
@@ -670,35 +769,45 @@ export function drawHUD(
   nearbyIssue: Issue | null,
   tick: number
 ): void {
-  // Top left - Remediated count
-  ctx.fillStyle = 'rgba(8,16,12,0.8)';
-  ctx.fillRect(6, 6, 200, 40);
-  ctx.strokeStyle = 'rgba(68,170,100,0.3)';
-  ctx.strokeRect(6, 6, 200, 40);
-  ctx.fillStyle = '#ddf0dd';
+  // Top left - Remediated count (Oasis navy style)
+  ctx.fillStyle = OASIS.navy + 'e0';
+  ctx.fillRect(6, 6, 220, 50);
+  ctx.strokeStyle = OASIS.teal;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(6, 6, 220, 50);
+  ctx.lineWidth = 1;
+  
+  ctx.fillStyle = OASIS.tealLight;
   ctx.font = 'bold 17px monospace';
-  ctx.fillText(`Remediated: ${fixed}/${TOTAL_ISSUES}`, 14, 32);
+  ctx.fillText(`Remediated: ${fixed}/${TOTAL_ISSUES}`, 14, 30);
+  
+  // Tagline
+  ctx.fillStyle = OASIS.teal;
+  ctx.font = '10px monospace';
+  ctx.fillText('Govern every non-human identity', 14, 46);
 
   // Top right - Timer with sand clock
   const timerBoxW = 120;
   const timerBoxH = 48;
-  ctx.fillStyle = 'rgba(8,16,12,0.85)';
+  ctx.fillStyle = OASIS.navy + 'e0';
   ctx.fillRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH);
-  ctx.strokeStyle = timer < 30 ? 'rgba(255,80,80,0.6)' : 'rgba(68,170,100,0.3)';
+  ctx.strokeStyle = timer < 30 ? '#ff5555' : OASIS.teal;
+  ctx.lineWidth = 2;
   ctx.strokeRect(VW - timerBoxW - 10, 6, timerBoxW, timerBoxH);
+  ctx.lineWidth = 1;
   
   // Time text
   const mins = Math.floor(timer / 60);
   const secs = Math.floor(timer % 60);
   const ts = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  ctx.fillStyle = timer < 30 ? '#ff5555' : '#ddf0dd';
+  ctx.fillStyle = timer < 30 ? '#ff5555' : OASIS.tealLight;
   ctx.font = 'bold 18px monospace';
   ctx.fillText(ts, VW - timerBoxW + 6, 36);
   
   // Sand clock (smaller)
   drawSandClock(ctx, VW - 48, 10, timer, tick);
 
-  // Bottom - Detailed issue info box (like in the screenshot)
+  // Bottom - Detailed issue info box (Oasis branded)
   if (nearbyIssue) {
     const issueInfo = ISSUE_TYPES[nearbyIssue.type];
     const profile = nearbyIssue.cubicle.profile;
@@ -709,16 +818,16 @@ export function drawHUD(
     const boxX = 10;
     const boxY = VH - boxH - 10;
 
-    // Background
-    ctx.fillStyle = 'rgba(8,16,12,0.92)';
+    // Background - Oasis navy
+    ctx.fillStyle = OASIS.navy + 'f5';
     ctx.fillRect(boxX, boxY, boxW, boxH);
-    ctx.strokeStyle = '#44aa66';
+    ctx.strokeStyle = OASIS.teal;
     ctx.lineWidth = 2;
     ctx.strokeRect(boxX, boxY, boxW, boxH);
     ctx.lineWidth = 1;
 
     // Line 1: SPACE -> Issue Name
-    ctx.fillStyle = '#44ddaa';
+    ctx.fillStyle = OASIS.tealLight;
     ctx.font = 'bold 16px monospace';
     ctx.fillText(`SPACE -> ${issueInfo.name}`, boxX + 14, boxY + 22);
 
@@ -729,12 +838,12 @@ export function drawHUD(
     ctx.fillText(`Pillar: ${issueInfo.pillar} | Risk: ${issueInfo.risk}`, boxX + 14, boxY + 42);
 
     // Line 3: Target info
-    ctx.fillStyle = '#88bbaa';
+    ctx.fillStyle = OASIS.teal;
     ctx.font = '12px monospace';
     ctx.fillText(`Target: ${profile.id} (${profile.kind})`, boxX + 14, boxY + 60);
 
     // Line 4: Description
-    ctx.fillStyle = '#778888';
+    ctx.fillStyle = '#8899aa';
     ctx.font = '11px monospace';
     ctx.fillText(issueInfo.desc, boxX + 14, boxY + 78);
   }
@@ -751,64 +860,84 @@ export function drawHUD(
 
 // Draw title screen
 export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
-  ctx.fillStyle = '#0e1018';
+  // Oasis navy background
+  ctx.fillStyle = OASIS.navy;
   ctx.fillRect(0, 0, VW, VH);
 
-  ctx.fillStyle = '#141820';
+  // Subtle grid pattern
+  ctx.fillStyle = OASIS.navyLight;
   for (let y = 0; y < VH; y += 40) {
     for (let x = 0; x < VW; x += 40) {
       if ((x / 40 + y / 40) % 2 === 0) ctx.fillRect(x, y, 40, 40);
     }
   }
 
-  // Animated cubicles
+  // Animated cubicles with Oasis styling
   for (let i = 0; i < 14; i++) {
     const bx = 40 + i * 60;
     const by = 380 + Math.sin(Date.now() * 0.001 + i) * 6;
-    ctx.fillStyle = '#1a2028';
+    ctx.fillStyle = OASIS.navyLight;
     ctx.fillRect(bx, by, 44, 28);
-    ctx.fillStyle = '#242e38';
+    ctx.fillStyle = '#3a4555';
     ctx.fillRect(bx, by, 44, 3);
-    ctx.fillStyle = i % 3 === 0 ? '#331818' : '#142a1c';
+    // Screen - teal for healthy, red for issue
+    ctx.fillStyle = i % 3 === 0 ? '#331818' : OASIS.tealDark + '40';
     ctx.fillRect(bx + 8, by + 6, 16, 10);
   }
 
+  // Draw some decorative palm trees
+  ctx.fillStyle = '#8B5A2B';
+  ctx.fillRect(80, 440, 6, 30);
+  ctx.fillRect(VW - 86, 440, 6, 30);
+  ctx.fillStyle = OASIS.teal;
+  ctx.beginPath();
+  ctx.arc(83, 435, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(VW - 83, 435, 20, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.textAlign = 'center';
 
+  // Oasis Security branding
+  ctx.fillStyle = OASIS.teal;
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('OASIS SECURITY', VW / 2, 70);
+
   // Title
-  ctx.fillStyle = '#44ddaa';
+  ctx.fillStyle = OASIS.tealLight;
   ctx.font = 'bold 52px monospace';
   ctx.fillText('NHI FIXER', VW / 2, 120);
-  ctx.fillStyle = 'rgba(68,221,170,0.15)';
+  ctx.fillStyle = OASIS.teal + '30';
   ctx.fillText('NHI FIXER', VW / 2 + 2, 122);
 
-  ctx.fillStyle = '#ff8833';
+  ctx.fillStyle = OASIS.gold;
   ctx.font = 'bold 20px monospace';
   ctx.fillText('Non-Human Identity Office', VW / 2, 160);
 
-  ctx.fillStyle = '#7799aa';
+  ctx.fillStyle = OASIS.teal;
   ctx.font = '16px monospace';
-  ctx.fillText('Secure the identities. Clean up the mess.', VW / 2, 195);
+  ctx.fillText('Govern every non-human identity', VW / 2, 195);
 
   // Player preview
   const camera = { x: 0, y: 0 };
   drawPerson(ctx, VW / 2 - 20 + camera.x, 218 + camera.y, camera, tick, {
     isPlayer: true,
-    shirtColor: '#00aaaa',
+    shirtColor: OASIS.tealDark,
     hairColor: '#443311',
     walking: true,
     frame: Math.floor(Date.now() / 300) % 2
   });
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#44ddaa';
+  ctx.fillStyle = OASIS.tealLight;
   ctx.font = '11px monospace';
-  ctx.fillText('↑ You (Oasis shirt)', VW / 2, 272);
+  ctx.fillText('↑ You (Oasis Security Agent)', VW / 2, 272);
 
   // Instructions
-  ctx.fillStyle = '#8899aa';
+  ctx.fillStyle = '#99aabb';
   ctx.font = '13px monospace';
   const lines = [
-    'WASD / Arrows  –  Move through the office',
+    'WASD / Arrows  –  Move through the oasis office',
     'SPACE  –  Remediate nearby NHI issue',
     '',
     '9 Non-Human Identities have security issues.',
@@ -819,7 +948,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
 
   // Start prompt
   if (Math.sin(Date.now() * 0.004) > 0) {
-    ctx.fillStyle = '#ffee44';
+    ctx.fillStyle = OASIS.gold;
     ctx.font = 'bold 20px monospace';
     ctx.fillText('Press ENTER or SPACE to start', VW / 2, 530);
   }
@@ -828,21 +957,24 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
 
 // Draw end screen
 export function drawEnd(ctx: CanvasRenderingContext2D, win: boolean, timer: number, fixed: number): void {
-  ctx.fillStyle = win ? 'rgba(4,24,12,0.9)' : 'rgba(30,8,8,0.9)';
+  ctx.fillStyle = win ? OASIS.navy + 'f0' : 'rgba(30,15,15,0.95)';
   ctx.fillRect(0, 0, VW, VH);
   ctx.textAlign = 'center';
 
   if (win) {
-    ctx.fillStyle = '#44ffaa';
+    ctx.fillStyle = OASIS.tealLight;
     ctx.font = 'bold 48px monospace';
     ctx.fillText('ALL NHIs SECURED!', VW / 2, 180);
+    ctx.fillStyle = OASIS.teal;
+    ctx.font = '16px monospace';
+    ctx.fillText('Oasis Security - Mission Complete', VW / 2, 220);
     ctx.fillStyle = '#ddf0dd';
     ctx.font = '20px monospace';
     const el = GAME_TIME - timer;
     const m = Math.floor(el / 60);
     const s = Math.floor(el % 60);
-    ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 250);
-    ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 290);
+    ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 270);
+    ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 310);
   } else {
     ctx.fillStyle = '#ff5555';
     ctx.font = 'bold 48px monospace';
@@ -850,11 +982,12 @@ export function drawEnd(ctx: CanvasRenderingContext2D, win: boolean, timer: numb
     ctx.fillStyle = '#ffcccc';
     ctx.font = '20px monospace';
     ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 250);
+    ctx.fillStyle = '#ff8888';
     ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 290);
   }
 
   if (Math.sin(Date.now() * 0.004) > 0) {
-    ctx.fillStyle = '#ffee44';
+    ctx.fillStyle = OASIS.gold;
     ctx.font = 'bold 18px monospace';
     ctx.fillText('Press ENTER or SPACE to continue', VW / 2, 420);
   }

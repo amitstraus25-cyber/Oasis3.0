@@ -19,21 +19,38 @@ export const T = {
   OUTER: 3,
   PLANT: 4,
   COOLER: 5,
+  PALM: 6,
+  CACTUS: 7,
+  WATER: 8,
 } as const;
 
 export const WALKABLE = new Set<number>([T.FLOOR]);
 
-// Colors - original office style
+// Colors - Oasis brand style
 export const COL = {
-  floor1: '#cec49a',
-  floor2: '#c8be94',
-  wall: '#8a98aa',
-  wallTrim: '#b0bcc8',
-  wallDark: '#6a7888',
+  floor1: '#d4c4a0',
+  floor2: '#cebf9a',
+  wall: '#7a8a9a',
+  wallTrim: '#a0b0c0',
+  wallDark: '#5a6878',
   desk: '#8c6428',
   deskTop: '#a47838',
-  outer: '#363c48',
-  outerTop: '#464e5a',
+  outer: '#c4a060',      // Sandy dune color
+  outerTop: '#d4b070',   // Lighter sand
+  outerDark: '#a08050',  // Darker sand
+};
+
+// Oasis brand colors
+export const OASIS = {
+  teal: '#14B8A6',
+  tealLight: '#5EEAD4',
+  tealDark: '#0D9488',
+  navy: '#1a2535',
+  navyLight: '#2a3545',
+  gold: '#d4a855',
+  sand: '#e8d4a8',
+  water: '#38bdf8',
+  waterDark: '#0ea5e9',
 };
 
 // NHI Profiles with detailed info

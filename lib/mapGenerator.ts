@@ -81,6 +81,47 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
     map[hallY + 1][3] = T.COOLER;
   }
 
+  // === OASIS ELEMENTS ===
+  
+  // Palm trees at corners and along edges (inside the office)
+  const palmPositions = [
+    [2, 2], [MAP_W - 3, 2], [2, MAP_H - 3], [MAP_W - 3, MAP_H - 3], // Corners
+    [Math.floor(MAP_W / 2), 2], [Math.floor(MAP_W / 2), MAP_H - 3], // Top/bottom center
+    [2, Math.floor(MAP_H / 2)], [MAP_W - 3, Math.floor(MAP_H / 2)], // Left/right center
+  ];
+  for (const [px, py] of palmPositions) {
+    if (py > 0 && py < MAP_H - 1 && px > 0 && px < MAP_W - 1 && map[py][px] === T.FLOOR) {
+      map[py][px] = T.PALM;
+    }
+  }
+
+  // Cacti in the outer sandy border
+  for (let x = 0; x < MAP_W; x++) {
+    if (x % 6 === 3) {
+      if (map[0][x] === T.OUTER) map[0][x] = T.CACTUS;
+      if (map[MAP_H - 1][x] === T.OUTER) map[MAP_H - 1][x] = T.CACTUS;
+    }
+  }
+  for (let y = 0; y < MAP_H; y++) {
+    if (y % 5 === 2) {
+      if (map[y][0] === T.OUTER) map[y][0] = T.CACTUS;
+      if (map[y][MAP_W - 1] === T.OUTER) map[y][MAP_W - 1] = T.CACTUS;
+    }
+  }
+
+  // Central oasis water pool (in the hallway intersection)
+  const poolCenterX = hallX;
+  const poolCenterY = hallY;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const wx = poolCenterX + dx;
+      const wy = poolCenterY + dy;
+      if (wy > 0 && wy < MAP_H - 1 && wx > 0 && wx < MAP_W - 1 && map[wy][wx] === T.FLOOR) {
+        map[wy][wx] = T.WATER;
+      }
+    }
+  }
+
   return { map, cubicles };
 }
 
