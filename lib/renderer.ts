@@ -1086,7 +1086,13 @@ export function drawMinimap(
   }
 
   for (const d of issues) {
-    ctx.fillStyle = d.fixed ? '#44cc44' : '#ff4444';
+    if (d.fixed) {
+      ctx.fillStyle = '#44cc44';
+    } else if (d.decoy) {
+      ctx.fillStyle = '#f59e0b'; // Orange for decoys
+    } else {
+      ctx.fillStyle = '#ff4444';
+    }
     ctx.fillRect(mx + d.tileX * sx - 1, my + d.tileY * sy - 1, 4, 4);
   }
 
