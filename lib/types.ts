@@ -95,3 +95,20 @@ export interface Camel {
   frame: number;
   moveTimer: number;
 }
+
+export interface BellyDancer {
+  x: number;
+  y: number;
+  tileX: number;
+  tileY: number;
+  dir: number;
+  frame: number;
+  moveTimer: number;
+}
+
+export interface ScoreEntry {
+  name: string;
+  time: number;
+  fixes: number;
+  date: string;
+}

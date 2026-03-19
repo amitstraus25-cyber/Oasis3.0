@@ -129,3 +129,7 @@ export const DECOY_MESSAGES = [
   "I'm not risky, just chatty! Anyway, have you heard about my service mesh topology?",
   "Oops — nothing wrong here! But pull up a chair, I have opinions about JWT tokens...",
 ];
+
+// Belly dancer trap NPC
+export const DANCER_COUNT = 2;
+export const DANCER_FREEZE_FRAMES = 240; // ~4 seconds

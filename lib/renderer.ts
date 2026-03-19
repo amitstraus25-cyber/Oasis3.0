@@ -2,7 +2,7 @@ import {
   TILE, MAP_W, MAP_H, VW, VH, T, COL, OASIS, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES, SPLIT_VW,
 } from './constants';
 import type {
-  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel, GameMode, Winner,
+  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel, BellyDancer, GameMode, Winner, ScoreEntry,
 } from './types';
 
 // OASIS letter patterns for floor branding (5 tiles wide, 7 tiles tall - smaller to fit)
@@ -127,46 +127,71 @@ export function drawTile(
     case T.WALL:
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      ctx.fillStyle = COL.wall;
-      ctx.fillRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
-      ctx.fillStyle = 'rgba(0,0,0,0.04)';
-      for (let ly = sy + 6; ly < sy + TILE - 4; ly += 3) {
-        ctx.fillRect(sx + 4, ly, TILE - 8, 1);
+      // Sandstone brick wall
+      ctx.fillStyle = '#c4a070';
+      ctx.fillRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+      // Brick pattern (alternating rows)
+      ctx.fillStyle = '#b89060';
+      for (let row = 0; row < 4; row++) {
+        const by = sy + 2 + row * 9;
+        const offset = row % 2 === 0 ? 0 : 10;
+        for (let bx = 0; bx < 3; bx++) {
+          ctx.fillRect(sx + 2 + offset + bx * 18, by, 16, 7);
+        }
       }
-      ctx.fillStyle = COL.wallTrim;
-      ctx.fillRect(sx + 1, sy + 1, TILE - 2, 3);
-      ctx.fillStyle = '#c4ccd4';
-      ctx.fillRect(sx + 1, sy + 1, TILE - 2, 1);
-      ctx.fillStyle = COL.wallDark;
-      ctx.fillRect(sx + 2, sy + TILE - 4, TILE - 4, 2);
+      // Mortar lines
+      ctx.fillStyle = '#d4b888';
+      for (let row = 0; row < 5; row++) {
+        ctx.fillRect(sx + 1, sy + 1 + row * 9, TILE - 2, 1);
+      }
+      // Top cap (clay trim)
+      ctx.fillStyle = '#d4b080';
+      ctx.fillRect(sx, sy, TILE, 3);
+      ctx.fillStyle = '#e0c090';
+      ctx.fillRect(sx, sy, TILE, 1);
+      // Shadow at bottom
+      ctx.fillStyle = '#9a7850';
+      ctx.fillRect(sx + 1, sy + TILE - 3, TILE - 2, 2);
       break;
 
     case T.DESK: {
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      // Desk surface
-      ctx.fillStyle = COL.desk;
-      ctx.fillRect(sx + 2, sy + 8, TILE - 4, 18);
-      ctx.fillStyle = COL.deskTop;
-      ctx.fillRect(sx + 2, sy + 8, TILE - 4, 3);
-      // Monitor
-      ctx.fillStyle = '#1a1a24';
-      ctx.fillRect(sx + 8, sy + 12, 20, 12);
+      // Wooden market stall desk with woven rug
+      ctx.fillStyle = '#8B6B3D';
+      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 22);
+      // Wood grain
+      ctx.fillStyle = '#9C7A48';
+      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 2);
+      ctx.fillStyle = '#7A5C32';
+      ctx.fillRect(sx + 4, sy + 12, TILE - 8, 1);
+      ctx.fillRect(sx + 4, sy + 18, TILE - 8, 1);
+      // Woven rug accent strip
+      ctx.fillStyle = '#a04040';
+      ctx.fillRect(sx + 4, sy + 14, TILE - 8, 4);
+      ctx.fillStyle = '#c06040';
+      ctx.fillRect(sx + 6, sy + 15, 4, 2);
+      ctx.fillRect(sx + 14, sy + 15, 4, 2);
+      ctx.fillRect(sx + 22, sy + 15, 4, 2);
+      // Lantern on desk
       const dk = `${tx},${ty}`;
       const dRef = deskMap.get(dk);
       if (dRef && !dRef.fixed) {
-        ctx.fillStyle = '#441818';
-        ctx.fillRect(sx + 9, sy + 13, 18, 10);
-        ctx.fillStyle = '#cc3333';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('⚠', sx + 14, sy + 21);
+        // Red warning lantern
+        ctx.fillStyle = '#442020';
+        ctx.fillRect(sx + 14, sy + 8, 10, 5);
+        ctx.fillStyle = '#cc4444';
+        ctx.fillRect(sx + 15, sy + 9, 8, 3);
+        ctx.fillStyle = '#ff6644';
+        ctx.fillRect(sx + 17, sy + 9, 4, 2);
       } else {
-        ctx.fillStyle = '#142a1c';
-        ctx.fillRect(sx + 9, sy + 13, 18, 10);
-        ctx.fillStyle = OASIS.teal;
-        ctx.fillRect(sx + 11, sy + 15, 12, 1);
-        ctx.fillRect(sx + 11, sy + 17, 8, 1);
-        ctx.fillRect(sx + 11, sy + 19, 14, 1);
+        // Green healthy lantern
+        ctx.fillStyle = '#1a2820';
+        ctx.fillRect(sx + 14, sy + 8, 10, 5);
+        ctx.fillStyle = '#44aa66';
+        ctx.fillRect(sx + 15, sy + 9, 8, 3);
+        ctx.fillStyle = '#66dd88';
+        ctx.fillRect(sx + 17, sy + 9, 4, 2);
       }
       break;
     }
@@ -1001,6 +1026,110 @@ export function drawCamel(
   }
 }
 
+// Draw belly dancer - oasis-style roaming trap
+export function drawBellyDancer(
+  ctx: CanvasRenderingContext2D,
+  dancer: BellyDancer,
+  camera: Camera,
+  tick: number
+): void {
+  const x = dancer.x - camera.x;
+  const y = dancer.y - camera.y;
+  const sway = Math.sin(tick * 0.12) * 3;
+  const armSway = Math.sin(tick * 0.15) * 5;
+  const bob = Math.sin(tick * 0.1) * 1.5;
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(x + 20, y + 38, 12, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Flowing skirt (wide, with movement)
+  ctx.fillStyle = '#b03060';
+  ctx.beginPath();
+  ctx.moveTo(x + 10 + sway, y + 22 + bob);
+  ctx.lineTo(x + 6 + sway * 1.3, y + 36 + bob);
+  ctx.lineTo(x + 34 + sway * 0.7, y + 36 + bob);
+  ctx.lineTo(x + 30 + sway, y + 22 + bob);
+  ctx.fill();
+  // Skirt pattern stripes
+  ctx.fillStyle = '#d04878';
+  ctx.fillRect(x + 12 + sway, y + 28 + bob, 16, 2);
+  ctx.fillStyle = '#e8a030';
+  ctx.fillRect(x + 10 + sway, y + 32 + bob, 20, 2);
+  
+  // Body/torso
+  ctx.fillStyle = '#e8b888';
+  ctx.fillRect(x + 14 + sway, y + 14 + bob, 12, 10);
+  
+  // Top (purple/magenta)
+  ctx.fillStyle = '#9030a0';
+  ctx.fillRect(x + 14 + sway, y + 14 + bob, 12, 6);
+  ctx.fillStyle = '#b050c0';
+  ctx.fillRect(x + 16 + sway, y + 15 + bob, 8, 4);
+  
+  // Arms (flowing/dancing)
+  ctx.fillStyle = '#e8b888';
+  // Left arm (raised, swaying)
+  ctx.fillRect(x + 8 + sway - armSway, y + 10 + bob, 4, 10);
+  ctx.fillRect(x + 6 + sway - armSway, y + 8 + bob, 4, 4);
+  // Right arm (extended, swaying)
+  ctx.fillRect(x + 28 + sway + armSway, y + 12 + bob, 4, 8);
+  ctx.fillRect(x + 30 + sway + armSway, y + 10 + bob, 4, 4);
+  
+  // Arm jewelry
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(x + 8 + sway - armSway, y + 14 + bob, 4, 2);
+  ctx.fillRect(x + 28 + sway + armSway, y + 16 + bob, 4, 2);
+  
+  // Head
+  ctx.fillStyle = '#e8b888';
+  ctx.beginPath();
+  ctx.arc(x + 20 + sway, y + 10 + bob, 6, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Hair (long, dark, flowing)
+  ctx.fillStyle = '#221100';
+  ctx.beginPath();
+  ctx.arc(x + 20 + sway, y + 8 + bob, 6, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x + 14 + sway, y + 8 + bob, 2, 10);
+  ctx.fillRect(x + 24 + sway, y + 8 + bob, 2, 8);
+  
+  // Headband
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(x + 14 + sway, y + 7 + bob, 12, 2);
+  ctx.fillStyle = '#ff4444';
+  ctx.fillRect(x + 19 + sway, y + 6 + bob, 3, 3);
+  
+  // Eyes
+  ctx.fillStyle = '#222';
+  ctx.fillRect(x + 18 + sway, y + 10 + bob, 2, 2);
+  ctx.fillRect(x + 22 + sway, y + 10 + bob, 2, 2);
+  
+  // Veil/scarf trail
+  ctx.fillStyle = `rgba(200,80,140,${0.3 + Math.sin(tick * 0.08) * 0.15})`;
+  ctx.beginPath();
+  ctx.moveTo(x + 26 + sway, y + 8 + bob);
+  ctx.quadraticCurveTo(x + 34 + sway + armSway, y + 6 + bob, x + 36 + sway + armSway * 1.5, y + 14 + bob);
+  ctx.lineTo(x + 32 + sway + armSway, y + 14 + bob);
+  ctx.quadraticCurveTo(x + 30 + sway + armSway * 0.5, y + 10 + bob, x + 26 + sway, y + 10 + bob);
+  ctx.fill();
+  
+  // Sparkle effect
+  if (Math.sin(tick * 0.06 + 1) > 0.4) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 8px Arial';
+    ctx.fillText('✦', x + 10 + Math.sin(tick * 0.1) * 6, y + 2 + bob);
+  }
+  if (Math.sin(tick * 0.06 + 3) > 0.4) {
+    ctx.fillStyle = '#ff69b4';
+    ctx.font = 'bold 7px Arial';
+    ctx.fillText('✦', x + 28 + Math.cos(tick * 0.08) * 5, y + 4 + bob);
+  }
+}
+
 // Draw particles
 export function drawParticles(
   ctx: CanvasRenderingContext2D,
@@ -1595,6 +1724,104 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): voi
   
   ctx.textAlign = 'left';
   ctx.lineWidth = 1;
+}
+
+// Draw scoreboard overlay
+export function drawScoreboard(
+  ctx: CanvasRenderingContext2D,
+  scores: ScoreEntry[],
+  playerName: string,
+  isEnteringName: boolean,
+  tick: number
+): void {
+  const bw = 340, bh = 260;
+  const bx = VW / 2 - bw / 2, by = VH / 2 - bh / 2 + 30;
+  
+  ctx.fillStyle = 'rgba(15,15,26,0.95)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 12);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124,92,252,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 12);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = OB.purpleLight;
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('TOP 5 LEADERBOARD', VW / 2, by + 28);
+
+  // Column headers
+  ctx.fillStyle = OB.textMuted;
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('#', bx + 20, by + 52);
+  ctx.fillText('NAME', bx + 40, by + 52);
+  ctx.fillText('TIME', bx + 180, by + 52);
+  ctx.fillText('FIXES', bx + 250, by + 52);
+  
+  // Divider
+  ctx.fillStyle = 'rgba(124,92,252,0.2)';
+  ctx.fillRect(bx + 16, by + 56, bw - 32, 1);
+
+  // Scores
+  for (let i = 0; i < 5; i++) {
+    const rowY = by + 72 + i * 28;
+    const s = scores[i];
+    
+    if (s) {
+      const isTop = i === 0;
+      ctx.fillStyle = isTop ? OB.purple + '25' : 'transparent';
+      if (isTop) {
+        ctx.beginPath();
+        ctx.roundRect(bx + 14, rowY - 12, bw - 28, 24, 4);
+        ctx.fill();
+      }
+      
+      ctx.fillStyle = isTop ? OB.orangeLight : OB.textPrimary;
+      ctx.font = isTop ? 'bold 13px monospace' : '12px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i + 1}`, bx + 20, rowY + 4);
+      ctx.fillText(s.name, bx + 40, rowY + 4);
+      const m = Math.floor(s.time / 60);
+      const sec = Math.floor(s.time % 60);
+      ctx.fillText(`${m}:${sec < 10 ? '0' : ''}${sec}`, bx + 180, rowY + 4);
+      ctx.fillText(`${s.fixes}/${TOTAL_ISSUES}`, bx + 250, rowY + 4);
+    } else {
+      ctx.fillStyle = OB.textMuted;
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i + 1}`, bx + 20, rowY + 4);
+      ctx.fillText('---', bx + 40, rowY + 4);
+    }
+  }
+
+  // Name entry
+  if (isEnteringName) {
+    const inputY = by + bh - 42;
+    ctx.fillStyle = 'rgba(124,92,252,0.12)';
+    ctx.beginPath();
+    ctx.roundRect(bx + 20, inputY - 4, bw - 40, 26, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(124,92,252,0.4)';
+    ctx.beginPath();
+    ctx.roundRect(bx + 20, inputY - 4, bw - 40, 26, 4);
+    ctx.stroke();
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = OB.textSecondary;
+    ctx.font = '10px monospace';
+    ctx.fillText('Type your name + ENTER to save', VW / 2, inputY - 10);
+    
+    ctx.fillStyle = OB.textPrimary;
+    ctx.font = 'bold 14px monospace';
+    const cursor = Math.sin(tick * 0.1) > 0 ? '|' : '';
+    ctx.fillText(playerName + cursor, VW / 2, inputY + 14);
+  }
+
+  ctx.textAlign = 'left';
 }
 
 // Draw end screen

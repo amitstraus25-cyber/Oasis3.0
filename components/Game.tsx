@@ -4,17 +4,19 @@ import { useEffect, useRef, useCallback } from 'react';
 import {
   TILE, MAP_W, MAP_H, VW, VH, T, WALKABLE, SPLIT_VW,
   PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES, OASIS,
-  DECOY_FREEZE_FRAMES, DECOY_MESSAGES,
+  DECOY_FREEZE_FRAMES, DECOY_MESSAGES, DANCER_FREEZE_FRAMES,
 } from '@/lib/constants';
 import type {
-  TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen, Camel, GameMode, Winner,
+  TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen, Camel, BellyDancer, GameMode, Winner,
 } from '@/lib/types';
-import { generateMap, createPlayer, createNPCs, createIssues, createCamels } from '@/lib/mapGenerator';
+import { generateMap, createPlayer, createNPCs, createIssues, createCamels, createBellyDancers } from '@/lib/mapGenerator';
 import { initAudio, sfxFix, sfxWin, sfxLose } from '@/lib/audio';
 import {
-  drawTile, drawCubicleLabels, drawPerson, drawIssue, drawCamel,
-  drawHUD, drawParticles, drawTitle, drawEnd, drawModeSelect, drawMinimap,
+  drawTile, drawCubicleLabels, drawPerson, drawIssue, drawCamel, drawBellyDancer,
+  drawHUD, drawParticles, drawTitle, drawEnd, drawModeSelect, drawMinimap, drawScoreboard,
 } from '@/lib/renderer';
+import { fetchScores, submitScore } from '@/lib/scoreboard';
+import type { ScoreEntry } from '@/lib/types';
 
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,6 +31,9 @@ export default function Game() {
     npcs: NPC[];
     issues: Issue[];
     camels: Camel[];
+    dancers: BellyDancer[];
+    dancerFreeze: number;
+    dancerFreeze2: number;
     particles: Particle[];
     timer: number;
     fixed: number;
@@ -53,6 +58,10 @@ export default function Game() {
     decoyMessage: string;
     decoyMessage2: string;
     winner: Winner;
+    scores: ScoreEntry[];
+    playerName: string;
+    enteringName: boolean;
+    scoreSubmitted: boolean;
   }>({
     screen: 'title',
     gameMode: 'single',
@@ -64,6 +73,9 @@ export default function Game() {
     npcs: [],
     issues: [],
     camels: [],
+    dancers: [],
+    dancerFreeze: 0,
+    dancerFreeze2: 0,
     particles: [],
     timer: GAME_TIME,
     fixed: 0,
@@ -88,6 +100,10 @@ export default function Game() {
     decoyMessage: '',
     decoyMessage2: '',
     winner: null,
+    scores: [],
+    playerName: '',
+    enteringName: false,
+    scoreSubmitted: false,
   });
 
   const startGame = useCallback((mode: GameMode) => {
@@ -122,6 +138,9 @@ export default function Game() {
     state.player2 = mode === 'multi' ? createPlayer(2) : null;
     state.npcs = createNPCs(cubicles);
     state.camels = createCamels(map);
+    state.dancers = createBellyDancers(map);
+    state.dancerFreeze = 0;
+    state.dancerFreeze2 = 0;
     const { issues, deskMap } = createIssues(cubicles, state.npcs);
     state.issues = issues;
     state.deskMap = deskMap;
@@ -259,11 +278,20 @@ export default function Game() {
     const state = gameStateRef.current;
     if (!state.player) return;
 
-    // Frozen by decoy NHI
-    if (state.decoyFreeze > 0) {
+    // Frozen by decoy NHI or belly dancer
+    if (state.decoyFreeze > 0 || state.dancerFreeze > 0) {
       state.player.moving = false;
       state.player.frame = 0;
       return;
+    }
+
+    // Check dancer collision
+    for (const dancer of state.dancers) {
+      const dist = Math.abs(state.player.x - dancer.x) + Math.abs(state.player.y - dancer.y);
+      if (dist < TILE * 0.8) {
+        state.dancerFreeze = DANCER_FREEZE_FRAMES;
+        return;
+      }
     }
 
     checkCoffeePickup(state.player, 1);
@@ -294,10 +322,18 @@ export default function Game() {
     const state = gameStateRef.current;
     if (!state.player2 || state.gameMode !== 'multi') return;
 
-    if (state.decoyFreeze2 > 0) {
+    if (state.decoyFreeze2 > 0 || state.dancerFreeze2 > 0) {
       state.player2.moving = false;
       state.player2.frame = 0;
       return;
+    }
+
+    for (const dancer of state.dancers) {
+      const dist = Math.abs(state.player2.x - dancer.x) + Math.abs(state.player2.y - dancer.y);
+      if (dist < TILE * 0.8) {
+        state.dancerFreeze2 = DANCER_FREEZE_FRAMES;
+        return;
+      }
     }
 
     checkCoffeePickup(state.player2, 2);
@@ -372,6 +408,31 @@ export default function Game() {
           camel.x = newTileX * TILE;
           camel.y = newTileY * TILE;
           camel.dir = dirs.indexOf(dir);
+        }
+      }
+    }
+  }, []);
+
+  const updateDancers = useCallback(() => {
+    const state = gameStateRef.current;
+    for (const dancer of state.dancers) {
+      dancer.moveTimer++;
+      dancer.frame = Math.floor(state.tick / 12) % 4;
+      if (dancer.moveTimer >= 150) {
+        dancer.moveTimer = 0;
+        const dirs = [
+          { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+        ];
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        const nx = dancer.tileX + dir.dx;
+        const ny = dancer.tileY + dir.dy;
+        if (nx > 1 && nx < MAP_W - 2 && ny > 1 && ny < MAP_H - 2 && WALKABLE.has(state.map[ny][nx])) {
+          dancer.tileX = nx;
+          dancer.tileY = ny;
+          dancer.x = nx * TILE;
+          dancer.y = ny * TILE;
+          dancer.dir = dirs.indexOf(dir);
         }
       }
     }
@@ -562,12 +623,20 @@ export default function Game() {
       if (player.fixes >= TOTAL_ISSUES) {
         state.winner = playerNum === 1 ? 'player1' : 'player2';
         state.screen = 'win';
+        state.enteringName = true;
+        state.playerName = '';
+        state.scoreSubmitted = false;
         sfxWin();
+        fetchScores().then(s => { state.scores = s; });
       }
     } else {
       if (state.fixed >= TOTAL_ISSUES) {
         state.screen = 'win';
+        state.enteringName = true;
+        state.playerName = '';
+        state.scoreSubmitted = false;
         sfxWin();
+        fetchScores().then(s => { state.scores = s; });
       }
     }
   }, []);
@@ -596,6 +665,7 @@ export default function Game() {
       
       state.screen = 'lose';
       sfxLose();
+      fetchScores().then(s => { state.scores = s; });
       return;
     }
 
@@ -607,6 +677,8 @@ export default function Game() {
     if (state.coffeeBoost2 > 0) state.coffeeBoost2--;
     if (state.decoyFreeze > 0) state.decoyFreeze--;
     if (state.decoyFreeze2 > 0) state.decoyFreeze2--;
+    if (state.dancerFreeze > 0) state.dancerFreeze--;
+    if (state.dancerFreeze2 > 0) state.dancerFreeze2--;
 
     // Tick cooler cooldowns
     state.coolerCooldowns.forEach((val, key) => {
@@ -621,6 +693,7 @@ export default function Game() {
     updateCamera();
     updateParticles();
     updateCamels();
+    updateDancers();
     spawnIssueParticles();
     findNearbyIssue();
 
@@ -632,7 +705,7 @@ export default function Game() {
       if (npc.happyTimer > 0) npc.happyTimer--;
       if (state.tick % 12 === 0) npc.frame = 1 - npc.frame;
     }
-  }, [updatePlayer, updatePlayer2, updateCamera, updateParticles, updateCamels, spawnIssueParticles, findNearbyIssue]);
+  }, [updatePlayer, updatePlayer2, updateCamera, updateParticles, updateCamels, updateDancers, spawnIssueParticles, findNearbyIssue]);
 
   const renderPlayerView = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -646,7 +719,8 @@ export default function Game() {
     camelBlockTimer: number,
     coffeeBoost: number,
     decoyFreeze: number,
-    decoyMessage: string
+    decoyMessage: string,
+    dancerFreeze: number
   ) => {
     const state = gameStateRef.current;
     
@@ -692,6 +766,11 @@ export default function Game() {
     // Draw camels
     for (const camel of state.camels) {
       drawCamel(ctx, camel, camera, state.tick);
+    }
+
+    // Draw belly dancers
+    for (const dancer of state.dancers) {
+      drawBellyDancer(ctx, dancer, camera, state.tick);
     }
 
     // Show "Playing with camel!" message if blocked
@@ -815,6 +894,24 @@ export default function Game() {
       ctx.textAlign = 'left';
     }
 
+    // Dancer freeze message
+    if (dancerFreeze > 0) {
+      ctx.fillStyle = 'rgba(15,15,26,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(viewWidth / 2 - 100, 80, 200, 28, 6);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(176,48,96,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(viewWidth / 2 - 100, 80, 200, 28, 6);
+      ctx.stroke();
+      ctx.fillStyle = '#ff69b4';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Mesmerized by the dancer!', viewWidth / 2, 99);
+      ctx.textAlign = 'left';
+    }
+
     // Draw particles
     drawParticles(ctx, state.particles, camera);
 
@@ -839,8 +936,8 @@ export default function Game() {
 
     if (state.gameMode === 'multi' && state.player2) {
       // Split-screen rendering
-      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage);
-      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2, state.decoyFreeze2, state.decoyMessage2);
+      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage, state.dancerFreeze);
+      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2, state.decoyFreeze2, state.decoyMessage2, state.dancerFreeze2);
       
       // Divider line (subtle purple)
       ctx.fillStyle = 'rgba(124,92,252,0.3)';
@@ -914,7 +1011,7 @@ export default function Game() {
       
     } else {
       // Single player rendering
-      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage);
+      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage, state.dancerFreeze);
       
       drawHUD(
         ctx,
@@ -941,6 +1038,7 @@ export default function Game() {
         state.player?.fixes || 0,
         state.player2?.fixes || 0
       );
+      drawScoreboard(ctx, state.scores, state.playerName, state.enteringName, state.tick);
     }
   }, [renderPlayerView]);
 
@@ -1004,12 +1102,30 @@ export default function Game() {
         }
       }
 
-      // End screen -> title
-      if ((state.screen === 'win' || state.screen === 'lose') && (e.code === 'Enter' || e.code === 'Space')) {
-        e.preventDefault();
-        state.screen = 'title';
-        state.camera = { x: 0, y: 0 };
-        state.camera2 = { x: 0, y: 0 };
+      // End screen — name entry or return to title
+      if (state.screen === 'win' || state.screen === 'lose') {
+        if (state.enteringName) {
+          e.preventDefault();
+          if (e.code === 'Enter' && state.playerName.length > 0) {
+            state.enteringName = false;
+            const elapsed = GAME_TIME - state.timer;
+            submitScore(state.playerName, elapsed, state.fixed).then(s => {
+              state.scores = s;
+              state.scoreSubmitted = true;
+            });
+          } else if (e.code === 'Backspace') {
+            state.playerName = state.playerName.slice(0, -1);
+          } else if (e.code === 'Escape') {
+            state.enteringName = false;
+          } else if (e.key.length === 1 && state.playerName.length < 12) {
+            state.playerName += e.key;
+          }
+        } else if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          state.screen = 'title';
+          state.camera = { x: 0, y: 0 };
+          state.camera2 = { x: 0, y: 0 };
+        }
       }
 
       // Player 1 fix: E or Space

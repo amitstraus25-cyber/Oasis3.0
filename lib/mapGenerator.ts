@@ -1,5 +1,5 @@
-import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES, OASIS, DECOY_COUNT } from './constants';
-import type { TileType, Cubicle, Player, NPC, Issue, Camel } from './types';
+import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES, OASIS, DECOY_COUNT, DANCER_COUNT } from './constants';
+import type { TileType, Cubicle, Player, NPC, Issue, Camel, BellyDancer } from './types';
 
 export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
   const map: TileType[][] = [];
@@ -215,6 +215,37 @@ export function createCamels(map: TileType[][]): Camel[] {
   }
   
   return camels;
+}
+
+export function createBellyDancers(map: TileType[][]): BellyDancer[] {
+  const dancers: BellyDancer[] = [];
+  const floorTiles: [number, number][] = [];
+  for (let y = 3; y < MAP_H - 3; y++) {
+    for (let x = 3; x < MAP_W - 3; x++) {
+      if (map[y][x] === T.FLOOR) {
+        let open = 0;
+        if (map[y-1][x] === T.FLOOR) open++;
+        if (map[y+1][x] === T.FLOOR) open++;
+        if (map[y][x-1] === T.FLOOR) open++;
+        if (map[y][x+1] === T.FLOOR) open++;
+        if (open >= 3) floorTiles.push([x, y]);
+      }
+    }
+  }
+  const shuffled = floorTiles.sort(() => Math.random() - 0.5);
+  for (let i = 0; i < Math.min(DANCER_COUNT, shuffled.length); i++) {
+    const [tx, ty] = shuffled[i];
+    dancers.push({
+      x: tx * TILE,
+      y: ty * TILE,
+      tileX: tx,
+      tileY: ty,
+      dir: Math.floor(Math.random() * 4),
+      frame: 0,
+      moveTimer: 0
+    });
+  }
+  return dancers;
 }
 
 export function createIssues(cubicles: Cubicle[], npcs: NPC[]): { issues: Issue[], deskMap: Map<string, Issue> } {
