@@ -1835,12 +1835,12 @@ export function drawEnd(
   p1Fixes: number = 0,
   p2Fixes: number = 0
 ): void {
-  ctx.fillStyle = win ? OB.bg + 'f5' : 'rgba(15,10,20,0.96)';
+  ctx.fillStyle = OB.bg + 'f5';
   ctx.fillRect(0, 0, VW, VH);
 
-  // Subtle purple glow at center
+  // Subtle glow at center (purple for both win/lose)
   const glowGrad = ctx.createRadialGradient(VW / 2, 200, 0, VW / 2, 200, 300);
-  glowGrad.addColorStop(0, win ? 'rgba(124,92,252,0.12)' : 'rgba(255,50,50,0.08)');
+  glowGrad.addColorStop(0, win ? 'rgba(124,92,252,0.12)' : 'rgba(249,115,22,0.1)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
   ctx.fillRect(0, 0, VW, VH);
@@ -1870,9 +1870,11 @@ export function drawEnd(
       ctx.font = '20px monospace';
       ctx.fillText('Both players matched!', VW / 2, 200);
     } else {
-      ctx.fillStyle = '#ff5555';
+      ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 48px monospace';
       ctx.fillText("TIME'S UP!", VW / 2, 160);
+      ctx.fillStyle = OB.orange + '30';
+      ctx.fillText("TIME'S UP!", VW / 2 + 2, 162);
     }
     
     // Score cards
