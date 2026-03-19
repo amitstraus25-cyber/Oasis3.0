@@ -107,38 +107,30 @@ export function drawTile(
     case T.DESK: {
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      // Desk surface (no chair - cleaner look)
+      // Desk surface
       ctx.fillStyle = COL.desk;
-      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 20);
+      ctx.fillRect(sx + 2, sy + 8, TILE - 4, 18);
       ctx.fillStyle = COL.deskTop;
-      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 3);
-      // Desk legs
-      ctx.fillStyle = '#5a4020';
-      ctx.fillRect(sx + 4, sy + 26, 4, 10);
-      ctx.fillRect(sx + TILE - 8, sy + 26, 4, 10);
+      ctx.fillRect(sx + 2, sy + 8, TILE - 4, 3);
       // Monitor
       ctx.fillStyle = '#1a1a24';
-      ctx.fillRect(sx + 8, sy + 10, 20, 13);
+      ctx.fillRect(sx + 8, sy + 12, 20, 12);
       const dk = `${tx},${ty}`;
       const dRef = deskMap.get(dk);
       if (dRef && !dRef.fixed) {
         ctx.fillStyle = '#441818';
-        ctx.fillRect(sx + 9, sy + 11, 18, 11);
+        ctx.fillRect(sx + 9, sy + 13, 18, 10);
         ctx.fillStyle = '#cc3333';
         ctx.font = 'bold 9px monospace';
-        ctx.fillText('⚠', sx + 14, sy + 19);
+        ctx.fillText('⚠', sx + 14, sy + 21);
       } else {
         ctx.fillStyle = '#142a1c';
-        ctx.fillRect(sx + 9, sy + 11, 18, 11);
+        ctx.fillRect(sx + 9, sy + 13, 18, 10);
         ctx.fillStyle = OASIS.teal;
-        ctx.fillRect(sx + 11, sy + 13, 12, 1);
-        ctx.fillRect(sx + 11, sy + 15, 8, 1);
-        ctx.fillRect(sx + 11, sy + 17, 14, 1);
-        ctx.fillRect(sx + 11, sy + 19, 6, 1);
+        ctx.fillRect(sx + 11, sy + 15, 12, 1);
+        ctx.fillRect(sx + 11, sy + 17, 8, 1);
+        ctx.fillRect(sx + 11, sy + 19, 14, 1);
       }
-      // Monitor stand
-      ctx.fillStyle = '#2a2a30';
-      ctx.fillRect(sx + 16, sy + 23, 4, 3);
       break;
     }
 
