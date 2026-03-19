@@ -1421,12 +1421,6 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     ctx.fillText(stats[i].label2, cx + cardW / 2, statY + 52);
   }
 
-  // Full statements (not truncated fragments), sourced from oasis.security/why-oasis
-  ctx.fillStyle = OB.textSecondary;
-  ctx.font = '10px monospace';
-  ctx.fillText('NHIs represent 20 to 50x more identities growing at 20% YoY.', VW / 2, 368);
-  ctx.fillText('NHIs constitute more than 90% of today’s identity fabric, but are ungoverned.', VW / 2, 382);
-
   // Instructions
   ctx.fillStyle = OB.textSecondary;
   ctx.font = '13px monospace';
@@ -1436,7 +1430,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     'NHIs have security issues. Fix them all!',
     'Watch out for noisy decoys that waste your time.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 402 + i * 17));
+  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 370 + i * 17));
 
   // Tagline
   ctx.fillStyle = OB.textMuted;
@@ -1725,32 +1719,66 @@ export function drawEnd(
       ctx.font = 'bold 11px monospace';
       ctx.fillText('oasis.security  →  Request a Demo', VW / 2, 352);
     } else {
-      ctx.fillStyle = '#ff5555';
+      // Title (use orange to stay in brand palette)
+      ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 44px monospace';
       ctx.fillText("TIME'S UP!", VW / 2, 160);
+      ctx.fillStyle = OB.orange + '35';
+      ctx.fillText("TIME'S UP!", VW / 2 + 2, 162);
+
+      // Score
       ctx.fillStyle = OB.textSecondary;
       ctx.font = '20px monospace';
       ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 230);
-      ctx.fillStyle = '#ff8888';
+      ctx.fillStyle = OB.textPrimary;
       ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 260);
       
-      // Lose message with Oasis branding
-      ctx.fillStyle = OB.bgCard + 'dd';
+      // Lose message with Oasis branding (bigger + punchier)
+      const cardX = VW / 2 - 250;
+      const cardY = 285;
+      const cardW = 500;
+      const cardH = 92;
+      ctx.fillStyle = OB.bgCard + 'e6';
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 230, 285, 460, 65, 8);
+      ctx.roundRect(cardX, cardY, cardW, cardH, 10);
       ctx.fill();
-      ctx.strokeStyle = '#ff555530';
+      ctx.strokeStyle = OB.orange + '55';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 230, 285, 460, 65, 8);
+      ctx.roundRect(cardX, cardY, cardW, cardH, 10);
       ctx.stroke();
-      
-      ctx.fillStyle = OB.textSecondary;
-      ctx.font = '12px monospace';
-      ctx.fillText('$4.88M — the average cost of a data breach.', VW / 2, 306);
-      ctx.fillText("Without Oasis, ungoverned NHIs leave the door open.", VW / 2, 324);
+      ctx.lineWidth = 1;
+
       ctx.fillStyle = OB.orangeLight;
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText('Oasis takes you from 0 to 10', VW / 2, cardY + 22);
+
+      // Wrapped body copy
+      const body =
+        'Purpose-built solution that combines powerful discovery, posture analytics, anomaly detection, and threat detection with efficient remediation and lifecycle management.';
+      ctx.fillStyle = OB.textSecondary;
+      ctx.font = '10px monospace';
+      const maxW = cardW - 34;
+      const words = body.split(' ');
+      let line = '';
+      let y = cardY + 40;
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        if (ctx.measureText(test).width > maxW) {
+          ctx.fillText(line, VW / 2, y);
+          line = w;
+          y += 13;
+          if (y > cardY + 66) break; // keep it tight
+        } else {
+          line = test;
+        }
+      }
+      if (line && y <= cardY + 66) ctx.fillText(line, VW / 2, y);
+
+      // CTA line
+      ctx.fillStyle = OB.purpleLight;
       ctx.font = 'bold 11px monospace';
-      ctx.fillText('oasis.security  →  Secure your NHIs today', VW / 2, 342);
+      ctx.fillText('oasis.security  →  Govern agentic access at scale', VW / 2, cardY + cardH - 12);
     }
   }
 
