@@ -44,6 +44,9 @@ export default function Game() {
     nearbyIssue2: Issue | null;
     camelBlockTimer: number;
     camelBlockTimer2: number;
+    coffeeBoost: number;
+    coffeeBoost2: number;
+    coolerCooldowns: Map<string, number>;
     winner: Winner;
   }>({
     screen: 'title',
@@ -72,6 +75,9 @@ export default function Game() {
     nearbyIssue2: null,
     camelBlockTimer: 0,
     camelBlockTimer2: 0,
+    coffeeBoost: 0,
+    coffeeBoost2: 0,
+    coolerCooldowns: new Map(),
     winner: null,
   });
 
@@ -91,6 +97,9 @@ export default function Game() {
     state.nearbyIssue2 = null;
     state.camelBlockTimer = 0;
     state.camelBlockTimer2 = 0;
+    state.coffeeBoost = 0;
+    state.coffeeBoost2 = 0;
+    state.coolerCooldowns = new Map();
     state.winner = null;
 
     const { map, cubicles } = generateMap();
@@ -113,11 +122,54 @@ export default function Game() {
     return WALKABLE.has(state.map[ty][tx]);
   }, []);
 
+  const checkCoffeePickup = useCallback((player: Player, playerNum: 1 | 2) => {
+    const state = gameStateRef.current;
+    const boostKey = playerNum === 1 ? 'coffeeBoost' : 'coffeeBoost2';
+    if (state[boostKey] > 0) return; // Already boosted
+
+    const ptx = Math.floor((player.x + TILE / 2) / TILE);
+    const pty = Math.floor((player.y + TILE / 2) / TILE);
+
+    // Check adjacent tiles for cooler
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const cx = ptx + dx;
+        const cy = pty + dy;
+        if (cx < 0 || cy < 0 || cx >= MAP_W || cy >= MAP_H) continue;
+        if (state.map[cy][cx] !== T.COOLER) continue;
+
+        const coolerKey = `${cx},${cy}`;
+        const cooldown = state.coolerCooldowns.get(coolerKey) || 0;
+        if (cooldown > 0) continue;
+
+        // Activate boost! 360 frames = ~6 seconds
+        state[boostKey] = 360;
+        state.coolerCooldowns.set(coolerKey, 600); // 10s cooldown on this cooler
+
+        // Coffee particles
+        for (let i = 0; i < 16; i++) {
+          state.particles.push({
+            x: cx * TILE + TILE / 2,
+            y: cy * TILE + TILE / 2,
+            vx: (Math.random() - 0.5) * 4,
+            vy: -2 - Math.random() * 3,
+            life: 20 + Math.random() * 15,
+            maxLife: 35,
+            color: ['#8B4513', '#D2691E', '#F5DEB3', '#FFD700'][Math.floor(Math.random() * 4)],
+            size: 2 + Math.random() * 3,
+          });
+        }
+        return;
+      }
+    }
+  }, []);
+
   const updatePlayerGeneric = useCallback((
     player: Player,
     upKey: string, downKey: string, leftKey: string, rightKey: string,
     camelBlockTimer: number,
-    setBlockTimer: (val: number) => void
+    setBlockTimer: (val: number) => void,
+    isBoosted: boolean
   ): number => {
     const state = gameStateRef.current;
     
@@ -153,7 +205,7 @@ export default function Game() {
         dy *= 0.707;
       }
 
-      const spd = PLAYER_SPEED;
+      const spd = isBoosted ? PLAYER_SPEED * 1.8 : PLAYER_SPEED;
       const pad = 10;
       const nx = player.x + dx * spd;
       const ny = player.y + dy * spd;
@@ -176,8 +228,9 @@ export default function Game() {
         player.y = ny;
       }
 
+      const animSpeed = isBoosted ? 4 : 7;
       player.frameTimer++;
-      if (player.frameTimer >= 7) {
+      if (player.frameTimer >= animSpeed) {
         player.frameTimer = 0;
         player.frame = 1 - player.frame;
       }
@@ -193,27 +246,56 @@ export default function Game() {
     const state = gameStateRef.current;
     if (!state.player) return;
 
-    // Player 1: WASD
+    checkCoffeePickup(state.player, 1);
+
     state.camelBlockTimer = updatePlayerGeneric(
       state.player,
       'KeyW', 'KeyS', 'KeyA', 'KeyD',
       state.camelBlockTimer,
-      (val) => { state.camelBlockTimer = val; }
+      (val) => { state.camelBlockTimer = val; },
+      state.coffeeBoost > 0
     );
-  }, [updatePlayerGeneric]);
+
+    // Spawn speed trail particles when boosted and moving
+    if (state.coffeeBoost > 0 && state.player.moving && state.tick % 3 === 0) {
+      state.particles.push({
+        x: state.player.x + TILE / 2 + (Math.random() - 0.5) * 10,
+        y: state.player.y + TILE + 4,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: -0.5 - Math.random() * 0.5,
+        life: 12, maxLife: 12,
+        color: Math.random() > 0.5 ? '#D2691E' : '#FFD700',
+        size: 2 + Math.random() * 2,
+      });
+    }
+  }, [updatePlayerGeneric, checkCoffeePickup]);
 
   const updatePlayer2 = useCallback(() => {
     const state = gameStateRef.current;
     if (!state.player2 || state.gameMode !== 'multi') return;
 
-    // Player 2: Arrow keys
+    checkCoffeePickup(state.player2, 2);
+
     state.camelBlockTimer2 = updatePlayerGeneric(
       state.player2,
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
       state.camelBlockTimer2,
-      (val) => { state.camelBlockTimer2 = val; }
+      (val) => { state.camelBlockTimer2 = val; },
+      state.coffeeBoost2 > 0
     );
-  }, [updatePlayerGeneric]);
+
+    if (state.coffeeBoost2 > 0 && state.player2.moving && state.tick % 3 === 0) {
+      state.particles.push({
+        x: state.player2.x + TILE / 2 + (Math.random() - 0.5) * 10,
+        y: state.player2.y + TILE + 4,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: -0.5 - Math.random() * 0.5,
+        life: 12, maxLife: 12,
+        color: Math.random() > 0.5 ? '#D2691E' : '#FFD700',
+        size: 2 + Math.random() * 2,
+      });
+    }
+  }, [updatePlayerGeneric, checkCoffeePickup]);
 
   const updateCameraForPlayer = useCallback((player: Player, camera: Camera, viewWidth: number) => {
     camera.x = player.x + TILE / 2 - viewWidth / 2;
@@ -466,6 +548,14 @@ export default function Game() {
     if (state.cooldown2 > 0) state.cooldown2--;
     if (state.flash > 0) state.flash--;
     if (state.flash2 > 0) state.flash2--;
+    if (state.coffeeBoost > 0) state.coffeeBoost--;
+    if (state.coffeeBoost2 > 0) state.coffeeBoost2--;
+
+    // Tick cooler cooldowns
+    state.coolerCooldowns.forEach((val, key) => {
+      if (val > 1) state.coolerCooldowns.set(key, val - 1);
+      else state.coolerCooldowns.delete(key);
+    });
 
     updatePlayer();
     if (state.gameMode === 'multi') {
@@ -496,7 +586,8 @@ export default function Game() {
     playerNum: 1 | 2,
     nearbyIssue: Issue | null,
     flash: number,
-    camelBlockTimer: number
+    camelBlockTimer: number,
+    coffeeBoost: number
   ) => {
     const state = gameStateRef.current;
     
@@ -555,19 +646,31 @@ export default function Game() {
       ctx.textAlign = 'left';
     }
 
-    // Player glow
+    // Player glow (coffee-colored when boosted)
     const pgx = player.x - camera.x + TILE / 2;
     const pgy = player.y - camera.y + TILE / 2 + 8;
     const glowR = 20 + Math.sin(state.tick * 0.08) * 3;
-    const glowColor = playerNum === 1 ? 'rgba(20,184,166,0.15)' : 'rgba(212,168,85,0.15)';
-    const strokeColor = playerNum === 1 ? 'rgba(94,234,212,0.5)' : 'rgba(245,216,154,0.5)';
+    
+    let glowColor: string;
+    let strokeColor: string;
+    
+    if (coffeeBoost > 0) {
+      glowColor = 'rgba(210,105,30,0.25)';
+      strokeColor = 'rgba(255,215,0,0.7)';
+    } else if (playerNum === 1) {
+      glowColor = 'rgba(20,184,166,0.15)';
+      strokeColor = 'rgba(94,234,212,0.5)';
+    } else {
+      glowColor = 'rgba(212,168,85,0.15)';
+      strokeColor = 'rgba(245,216,154,0.5)';
+    }
     
     ctx.fillStyle = glowColor;
     ctx.beginPath();
-    ctx.arc(pgx, pgy, glowR + 5, 0, Math.PI * 2);
+    ctx.arc(pgx, pgy, (coffeeBoost > 0 ? glowR + 8 : glowR) + 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = coffeeBoost > 0 ? 3 : 2;
     ctx.beginPath();
     ctx.arc(pgx, pgy, glowR, 0, Math.PI * 2);
     ctx.stroke();
@@ -581,6 +684,28 @@ export default function Game() {
       walking: player.moving,
       frame: player.frame
     });
+
+    // Coffee boost indicator
+    if (coffeeBoost > 0) {
+      const boostBarWidth = 60;
+      const boostPct = coffeeBoost / 360;
+      const bx = pgx - boostBarWidth / 2;
+      const by = player.y - camera.y - 8;
+      
+      // "COFFEE BOOST!" text
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('☕ BOOST!', pgx, by - 4);
+      ctx.textAlign = 'left';
+      
+      // Bar background
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx, by, boostBarWidth, 5);
+      // Bar fill
+      ctx.fillStyle = boostPct > 0.3 ? '#D2691E' : '#ff4444';
+      ctx.fillRect(bx, by, boostBarWidth * boostPct, 5);
+    }
 
     // Draw particles
     drawParticles(ctx, state.particles, camera);
@@ -606,8 +731,8 @@ export default function Game() {
 
     if (state.gameMode === 'multi' && state.player2) {
       // Split-screen rendering
-      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer);
-      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2);
+      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost);
+      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2);
       
       // Divider line
       ctx.fillStyle = '#333';
@@ -668,7 +793,7 @@ export default function Game() {
       
     } else {
       // Single player rendering
-      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer);
+      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost);
       
       drawHUD(
         ctx,
