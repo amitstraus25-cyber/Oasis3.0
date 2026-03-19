@@ -1,8 +1,8 @@
 import {
-  TILE, MAP_W, MAP_H, VW, VH, T, COL, OASIS, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES,
+  TILE, MAP_W, MAP_H, VW, VH, T, COL, OASIS, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES, SPLIT_VW,
 } from './constants';
 import type {
-  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel,
+  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel, GameMode, Winner,
 } from './types';
 
 // OASIS letter patterns for floor branding (5 tiles wide, 7 tiles tall - smaller to fit)
@@ -1314,35 +1314,193 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
   ctx.textAlign = 'left';
 }
 
+// Draw mode select screen
+export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): void {
+  // Oasis navy background
+  ctx.fillStyle = OASIS.navy;
+  ctx.fillRect(0, 0, VW, VH);
+
+  // Subtle grid pattern
+  ctx.fillStyle = OASIS.navyLight;
+  for (let y = 0; y < VH; y += 40) {
+    for (let x = 0; x < VW; x += 40) {
+      if ((x / 40 + y / 40) % 2 === 0) ctx.fillRect(x, y, 40, 40);
+    }
+  }
+
+  ctx.textAlign = 'center';
+
+  // Title
+  ctx.fillStyle = OASIS.teal;
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('OASIS SECURITY', VW / 2, 60);
+  
+  ctx.fillStyle = OASIS.tealLight;
+  ctx.font = 'bold 42px monospace';
+  ctx.fillText('SELECT MODE', VW / 2, 110);
+
+  // Mode options
+  const pulse = Math.sin(tick * 0.08) * 0.3 + 0.7;
+  
+  // Single Player box
+  ctx.fillStyle = OASIS.navyLight;
+  ctx.fillRect(VW / 2 - 180, 160, 150, 180);
+  ctx.strokeStyle = OASIS.teal;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(VW / 2 - 180, 160, 150, 180);
+  
+  // Player 1 preview
+  const camera = { x: 0, y: 0 };
+  drawPerson(ctx, VW / 2 - 125 + camera.x, 185 + camera.y, camera, tick, {
+    isPlayer: true,
+    shirtColor: OASIS.tealDark,
+    hairColor: '#443311',
+    walking: true,
+    frame: Math.floor(Date.now() / 300) % 2
+  });
+  
+  ctx.fillStyle = OASIS.tealLight;
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('1 PLAYER', VW / 2 - 105, 270);
+  ctx.fillStyle = `rgba(212, 168, 85, ${pulse})`;
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText('Press 1', VW / 2 - 105, 310);
+
+  // Multiplayer box
+  ctx.fillStyle = OASIS.navyLight;
+  ctx.fillRect(VW / 2 + 30, 160, 150, 180);
+  ctx.strokeStyle = OASIS.gold;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(VW / 2 + 30, 160, 150, 180);
+  
+  // Player 1 & 2 previews (smaller, side by side)
+  drawPerson(ctx, VW / 2 + 55 + camera.x, 185 + camera.y, camera, tick, {
+    isPlayer: true,
+    shirtColor: OASIS.tealDark,
+    hairColor: '#443311',
+    walking: true,
+    frame: Math.floor(Date.now() / 300) % 2
+  });
+  drawPerson(ctx, VW / 2 + 100 + camera.x, 185 + camera.y, camera, tick, {
+    isPlayer: true,
+    shirtColor: '#D4A855', // Gold shirt for P2
+    hairColor: '#664422',
+    walking: true,
+    frame: Math.floor(Date.now() / 300 + 1) % 2
+  });
+  
+  ctx.fillStyle = OASIS.gold;
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('2 PLAYERS', VW / 2 + 105, 270);
+  ctx.fillStyle = `rgba(212, 168, 85, ${pulse})`;
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText('Press 2', VW / 2 + 105, 310);
+
+  // Controls info
+  ctx.fillStyle = '#99aabb';
+  ctx.font = '13px monospace';
+  ctx.fillText('─── CONTROLS ───', VW / 2, 380);
+  
+  ctx.fillStyle = OASIS.tealLight;
+  ctx.font = '12px monospace';
+  ctx.fillText('PLAYER 1: WASD to move, E/SPACE to fix', VW / 2, 410);
+  ctx.fillStyle = OASIS.gold;
+  ctx.fillText('PLAYER 2: Arrows to move, ENTER/SHIFT to fix', VW / 2, 435);
+  
+  ctx.fillStyle = '#778899';
+  ctx.font = '11px monospace';
+  ctx.fillText('First to fix all issues wins! (1 minute timer)', VW / 2, 470);
+
+  // Back hint
+  ctx.fillStyle = '#556677';
+  ctx.font = '11px monospace';
+  ctx.fillText('Press ESC to go back', VW / 2, 520);
+  
+  ctx.textAlign = 'left';
+  ctx.lineWidth = 1;
+}
+
 // Draw end screen
-export function drawEnd(ctx: CanvasRenderingContext2D, win: boolean, timer: number, fixed: number): void {
+export function drawEnd(
+  ctx: CanvasRenderingContext2D, 
+  win: boolean, 
+  timer: number, 
+  fixed: number,
+  gameMode: GameMode = 'single',
+  winner: Winner = null,
+  p1Fixes: number = 0,
+  p2Fixes: number = 0
+): void {
   ctx.fillStyle = win ? OASIS.navy + 'f0' : 'rgba(30,15,15,0.95)';
   ctx.fillRect(0, 0, VW, VH);
   ctx.textAlign = 'center';
 
-  if (win) {
+  if (gameMode === 'multi') {
+    // Multiplayer end screen
+    if (winner === 'player1') {
+      ctx.fillStyle = OASIS.tealLight;
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText('PLAYER 1 WINS!', VW / 2, 160);
+      ctx.fillStyle = OASIS.teal;
+      ctx.font = '20px monospace';
+      ctx.fillText('Teal Team Victory!', VW / 2, 200);
+    } else if (winner === 'player2') {
+      ctx.fillStyle = OASIS.gold;
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText('PLAYER 2 WINS!', VW / 2, 160);
+      ctx.fillStyle = '#D4A855';
+      ctx.font = '20px monospace';
+      ctx.fillText('Gold Team Victory!', VW / 2, 200);
+    } else if (winner === 'tie') {
+      ctx.fillStyle = '#aabbcc';
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText("IT'S A TIE!", VW / 2, 160);
+      ctx.fillStyle = '#99aabb';
+      ctx.font = '20px monospace';
+      ctx.fillText('Both players matched!', VW / 2, 200);
+    } else {
+      ctx.fillStyle = '#ff5555';
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText("TIME'S UP!", VW / 2, 160);
+    }
+    
+    // Score comparison
     ctx.fillStyle = OASIS.tealLight;
-    ctx.font = 'bold 48px monospace';
-    ctx.fillText('ALL NHIs SECURED!', VW / 2, 180);
-    ctx.fillStyle = OASIS.teal;
-    ctx.font = '16px monospace';
-    ctx.fillText('Oasis Security - Mission Complete', VW / 2, 220);
-    ctx.fillStyle = '#ddf0dd';
-    ctx.font = '20px monospace';
-    const el = GAME_TIME - timer;
-    const m = Math.floor(el / 60);
-    const s = Math.floor(el % 60);
-    ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 270);
-    ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 310);
+    ctx.font = '18px monospace';
+    ctx.fillText(`Player 1: ${p1Fixes} fixes`, VW / 2 - 100, 280);
+    ctx.fillStyle = OASIS.gold;
+    ctx.fillText(`Player 2: ${p2Fixes} fixes`, VW / 2 + 100, 280);
+    
+    ctx.fillStyle = '#99aabb';
+    ctx.font = '14px monospace';
+    ctx.fillText(`Total issues: ${TOTAL_ISSUES}`, VW / 2, 320);
+    
   } else {
-    ctx.fillStyle = '#ff5555';
-    ctx.font = 'bold 48px monospace';
-    ctx.fillText("TIME'S UP!", VW / 2, 180);
-    ctx.fillStyle = '#ffcccc';
-    ctx.font = '20px monospace';
-    ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 250);
-    ctx.fillStyle = '#ff8888';
-    ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 290);
+    // Single player end screen (original)
+    if (win) {
+      ctx.fillStyle = OASIS.tealLight;
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText('ALL NHIs SECURED!', VW / 2, 180);
+      ctx.fillStyle = OASIS.teal;
+      ctx.font = '16px monospace';
+      ctx.fillText('Oasis Security - Mission Complete', VW / 2, 220);
+      ctx.fillStyle = '#ddf0dd';
+      ctx.font = '20px monospace';
+      const el = GAME_TIME - timer;
+      const m = Math.floor(el / 60);
+      const s = Math.floor(el % 60);
+      ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 270);
+      ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 310);
+    } else {
+      ctx.fillStyle = '#ff5555';
+      ctx.font = 'bold 48px monospace';
+      ctx.fillText("TIME'S UP!", VW / 2, 180);
+      ctx.fillStyle = '#ffcccc';
+      ctx.font = '20px monospace';
+      ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 250);
+      ctx.fillStyle = '#ff8888';
+      ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 290);
+    }
   }
 
   if (Math.sin(Date.now() * 0.004) > 0) {

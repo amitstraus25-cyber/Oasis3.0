@@ -8,8 +8,11 @@ export const VH = 680;
 // Gameplay
 export const PLAYER_SPEED = 3.8;
 export const FIX_RANGE = 72;
-export const GAME_TIME = 180;
+export const GAME_TIME = 60; // 1 minute
 export const TOTAL_ISSUES = 9;
+
+// Split-screen dimensions
+export const SPLIT_VW = 440; // Half of VW for each player
 
 // Tile types
 export const T = {

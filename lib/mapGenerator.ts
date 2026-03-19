@@ -1,4 +1,4 @@
-import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES } from './constants';
+import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES, OASIS } from './constants';
 import type { TileType, Cubicle, Player, NPC, Issue, Camel } from './types';
 
 export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
@@ -147,14 +147,18 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
   return { map, cubicles };
 }
 
-export function createPlayer(): Player {
+export function createPlayer(playerNum: 1 | 2 = 1): Player {
+  // Player 1 spawns on left side, Player 2 on right side
+  const xOffset = playerNum === 1 ? -5 : 5;
   return {
-    x: (MAP_W / 2) * TILE,
+    x: (MAP_W / 2 + xOffset) * TILE,
     y: (MAP_H / 2) * TILE,
-    dir: 0,
+    dir: playerNum === 1 ? 3 : 2, // P1 faces right, P2 faces left
     frame: 0,
     frameTimer: 0,
-    moving: false
+    moving: false,
+    shirtColor: playerNum === 1 ? OASIS.tealDark : '#D4A855', // Teal for P1, Gold for P2
+    fixes: 0
   };
 }
 

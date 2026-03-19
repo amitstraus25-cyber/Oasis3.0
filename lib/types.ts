@@ -7,6 +7,8 @@ export interface Player {
   frame: number;
   frameTimer: number;
   moving: boolean;
+  shirtColor: string;
+  fixes: number;
 }
 
 export interface NHIProfile {
@@ -67,7 +69,9 @@ export interface Camera {
   y: number;
 }
 
-export type GameScreen = 'title' | 'playing' | 'win' | 'lose';
+export type GameScreen = 'title' | 'modeSelect' | 'playing' | 'win' | 'lose';
+export type GameMode = 'single' | 'multi';
+export type Winner = 'player1' | 'player2' | 'tie' | null;
 
 export interface DrawPersonOptions {
   isPlayer?: boolean;
