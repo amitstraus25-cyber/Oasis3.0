@@ -1370,11 +1370,11 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
 
   ctx.fillStyle = OB.purpleSoft;
   ctx.font = 'bold 18px monospace';
-  ctx.fillText('Non-Human Identity Office', VW / 2, 165);
+  ctx.fillText('Agentic Access Management', VW / 2, 165);
 
   ctx.fillStyle = OB.textSecondary;
   ctx.font = '14px monospace';
-  ctx.fillText('Govern every non-human identity', VW / 2, 195);
+  ctx.fillText('Identity security starts from NHIs', VW / 2, 195);
 
   // Player preview
   const camera = { x: 0, y: 0 };
@@ -1390,22 +1390,52 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
   ctx.font = '11px monospace';
   ctx.fillText('↑ You (Oasis Security Agent)', VW / 2, 275);
 
-  // Instructions in a card
-  ctx.fillStyle = OB.bgCard + 'cc';
-  ctx.fillRect(VW / 2 - 220, 290, 440, 100);
-  ctx.strokeStyle = OB.purple + '30';
-  ctx.strokeRect(VW / 2 - 220, 290, 440, 100);
+  // Stats row from website (3 cards)
+  const statY = 290;
+  const stats = [
+    { val: '20-50x', label: 'more NHIs than', label2: 'human identities' },
+    { val: '$4.88M', label: 'avg. cost of', label2: 'a data breach' },
+    { val: '90%+', label: 'of identity fabric', label2: 'is non-human' },
+  ];
+  const cardW = 130, cardGap = 12;
+  const totalW = stats.length * cardW + (stats.length - 1) * cardGap;
+  const startX = VW / 2 - totalW / 2;
+  
+  for (let i = 0; i < stats.length; i++) {
+    const cx = startX + i * (cardW + cardGap);
+    ctx.fillStyle = OB.bgCard + 'cc';
+    ctx.beginPath();
+    ctx.roundRect(cx, statY, cardW, 60, 8);
+    ctx.fill();
+    ctx.strokeStyle = OB.purple + '25';
+    ctx.beginPath();
+    ctx.roundRect(cx, statY, cardW, 60, 8);
+    ctx.stroke();
+    
+    ctx.fillStyle = OB.purpleLight;
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText(stats[i].val, cx + cardW / 2, statY + 22);
+    ctx.fillStyle = OB.textMuted;
+    ctx.font = '9px monospace';
+    ctx.fillText(stats[i].label, cx + cardW / 2, statY + 38);
+    ctx.fillText(stats[i].label2, cx + cardW / 2, statY + 49);
+  }
 
+  // Instructions
   ctx.fillStyle = OB.textSecondary;
   ctx.font = '13px monospace';
   const lines = [
-    'WASD / Arrows  –  Move through the oasis office',
-    'E / SPACE  –  Remediate nearby NHI issue',
+    'WASD to move  |  E / SPACE to remediate',
     '',
-    '9 Non-Human Identities have security issues.',
-    'Find and fix them all before time runs out!'
+    'NHIs have security issues. Fix them all!',
+    'Watch out for noisy decoys that waste your time.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 310 + i * 17));
+  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 378 + i * 17));
+
+  // Tagline
+  ctx.fillStyle = OB.textMuted;
+  ctx.font = '11px monospace';
+  ctx.fillText('Turning IAM friction into accelerated AI adoption', VW / 2, 460);
 
   // Start button (orange CTA like the website)
   if (Math.sin(Date.now() * 0.004) > 0) {
@@ -1423,7 +1453,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
   // Footer
   ctx.fillStyle = OB.textMuted;
   ctx.font = '10px monospace';
-  ctx.fillText('oasis.security', VW / 2, VH - 20);
+  ctx.fillText('oasis.security  |  Scale AI safely with governed agentic access', VW / 2, VH - 20);
 
   ctx.textAlign = 'left';
 }
@@ -1642,35 +1672,79 @@ export function drawEnd(
     ctx.font = '14px monospace';
     ctx.fillText(`Total issues: ${TOTAL_ISSUES}`, VW / 2, 345);
     
+    // Multiplayer end branding
+    ctx.fillStyle = OB.textSecondary;
+    ctx.font = '11px monospace';
+    ctx.fillText('NHIs outnumber human identities 20-50x and growing 20% YoY', VW / 2, 380);
+    ctx.fillStyle = OB.purpleLight;
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('oasis.security  →  Govern agentic access at scale', VW / 2, 398);
+    
   } else {
     if (win) {
       ctx.fillStyle = OB.purpleLight;
-      ctx.font = 'bold 48px monospace';
-      ctx.fillText('ALL NHIs SECURED!', VW / 2, 170);
+      ctx.font = 'bold 44px monospace';
+      ctx.fillText('ALL NHIs SECURED!', VW / 2, 160);
       ctx.fillStyle = OB.purple + '30';
-      ctx.fillText('ALL NHIs SECURED!', VW / 2 + 2, 172);
+      ctx.fillText('ALL NHIs SECURED!', VW / 2 + 2, 162);
       
-      ctx.fillStyle = OB.textSecondary;
+      ctx.fillStyle = OB.purpleSoft;
       ctx.font = '16px monospace';
-      ctx.fillText('Oasis Security — Mission Complete', VW / 2, 210);
+      ctx.fillText('Oasis — Agentic Access Management', VW / 2, 195);
       
       ctx.fillStyle = OB.textPrimary;
       ctx.font = '20px monospace';
       const el = GAME_TIME - timer;
       const m = Math.floor(el / 60);
       const s = Math.floor(el % 60);
-      ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 270);
+      ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 240);
       ctx.fillStyle = OB.purpleSoft;
-      ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 310);
+      ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 270);
+      
+      // Win message with Oasis branding
+      ctx.fillStyle = OB.bgCard + 'dd';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 230, 295, 460, 65, 8);
+      ctx.fill();
+      ctx.strokeStyle = OB.purple + '30';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 230, 295, 460, 65, 8);
+      ctx.stroke();
+      
+      ctx.fillStyle = OB.textSecondary;
+      ctx.font = '12px monospace';
+      ctx.fillText('NHIs constitute 90%+ of the identity fabric.', VW / 2, 316);
+      ctx.fillText('You just governed them all. Oasis does it at cloud scale.', VW / 2, 334);
+      ctx.fillStyle = OB.purpleLight;
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('oasis.security  →  Request a Demo', VW / 2, 352);
     } else {
       ctx.fillStyle = '#ff5555';
-      ctx.font = 'bold 48px monospace';
-      ctx.fillText("TIME'S UP!", VW / 2, 170);
+      ctx.font = 'bold 44px monospace';
+      ctx.fillText("TIME'S UP!", VW / 2, 160);
       ctx.fillStyle = OB.textSecondary;
       ctx.font = '20px monospace';
-      ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 240);
+      ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 230);
       ctx.fillStyle = '#ff8888';
-      ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 280);
+      ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 260);
+      
+      // Lose message with Oasis branding
+      ctx.fillStyle = OB.bgCard + 'dd';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 230, 285, 460, 65, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#ff555530';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 230, 285, 460, 65, 8);
+      ctx.stroke();
+      
+      ctx.fillStyle = OB.textSecondary;
+      ctx.font = '12px monospace';
+      ctx.fillText('$4.88M — the average cost of a data breach.', VW / 2, 306);
+      ctx.fillText("Without Oasis, ungoverned NHIs leave the door open.", VW / 2, 324);
+      ctx.fillStyle = OB.orangeLight;
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('oasis.security  →  Secure your NHIs today', VW / 2, 342);
     }
   }
 
@@ -1686,6 +1760,11 @@ export function drawEnd(
     ctx.font = 'bold 18px monospace';
     ctx.fillText('Press ENTER or SPACE to continue', VW / 2, btnY + 26);
   }
+  
+  // Footer tagline
+  ctx.fillStyle = OB.textMuted;
+  ctx.font = '10px monospace';
+  ctx.fillText('Oasis Security  |  Map. Secure. Govern. Automate.', VW / 2, VH - 20);
   
   ctx.textAlign = 'left';
 }
