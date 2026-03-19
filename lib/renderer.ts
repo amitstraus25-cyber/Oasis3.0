@@ -5,35 +5,80 @@ import type {
   TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions,
 } from './types';
 
-// OASIS letter patterns for floor branding (5 tiles wide each)
-const OASIS_LETTERS: Record<string, string[]> = {
-  O: ['01110', '10001', '10001', '10001', '01110'],
-  A: ['00100', '01010', '10001', '11111', '10001'],
-  S: ['01111', '10000', '01110', '00001', '11110'],
-  I: ['11111', '00100', '00100', '00100', '11111'],
+// OASIS letter patterns for floor branding (7 tiles wide, 9 tiles tall - BIG)
+const OASIS_LETTERS_BIG: Record<string, string[]> = {
+  O: [
+    '0011100',
+    '0100010',
+    '1000001',
+    '1000001',
+    '1000001',
+    '1000001',
+    '1000001',
+    '0100010',
+    '0011100',
+  ],
+  A: [
+    '0001000',
+    '0010100',
+    '0100010',
+    '0100010',
+    '1000001',
+    '1111111',
+    '1000001',
+    '1000001',
+    '1000001',
+  ],
+  S: [
+    '0111110',
+    '1000001',
+    '1000000',
+    '0100000',
+    '0011100',
+    '0000010',
+    '0000001',
+    '1000001',
+    '0111110',
+  ],
+  I: [
+    '1111111',
+    '0001000',
+    '0001000',
+    '0001000',
+    '0001000',
+    '0001000',
+    '0001000',
+    '0001000',
+    '1111111',
+  ],
 };
 
-// Check if tile is part of OASIS branding
+// Check if tile is part of OASIS branding - BIG version across whole map
 function isOasisBrandTile(tx: number, ty: number): boolean {
-  // Place "OASIS" in the center horizontal hallway
-  const brandY = 13; // Row for branding
-  const brandStartX = 8; // Start column
+  // Place "OASIS" centered on the map
+  const letterHeight = 9;
+  const letterWidth = 7;
+  const letterSpacing = 2;
+  const totalWidth = 5 * letterWidth + 4 * letterSpacing; // 5 letters, 4 gaps
+  
+  const brandStartX = Math.floor((MAP_W - totalWidth) / 2);
+  const brandStartY = Math.floor((MAP_H - letterHeight) / 2);
+  
+  if (ty < brandStartY || ty >= brandStartY + letterHeight) return false;
+  if (tx < brandStartX || tx >= brandStartX + totalWidth) return false;
+  
+  const row = ty - brandStartY;
   const letters = ['O', 'A', 'S', 'I', 'S'];
-  const letterWidth = 5;
-  const letterSpacing = 1;
   
-  if (ty < brandY || ty >= brandY + 5) return false;
-  
-  const row = ty - brandY;
   let currentX = brandStartX;
-  
   for (const letter of letters) {
     if (tx >= currentX && tx < currentX + letterWidth) {
       const col = tx - currentX;
-      const pattern = OASIS_LETTERS[letter];
+      const pattern = OASIS_LETTERS_BIG[letter];
       if (pattern && pattern[row] && pattern[row][col] === '1') {
         return true;
       }
+      return false;
     }
     currentX += letterWidth + letterSpacing;
   }
@@ -57,11 +102,11 @@ function getOasisGradient(tx: number, ty: number): string {
   // Add checker pattern variation
   const checker = (tx + ty) % 2 === 0 ? 0 : -8;
   
-  // Subtle OASIS branding - slightly teal tint
+  // OASIS branding - more visible teal tint
   if (isOasisBrandTile(tx, ty)) {
-    r -= 20;
-    g += 10;
-    b += 15;
+    r -= 40;
+    g += 25;
+    b += 35;
   }
   
   return `rgb(${r + checker},${g + checker},${b + checker})`;
@@ -855,7 +900,8 @@ export function drawMinimap(
   ctx.fillStyle = '#b0a878';
   ctx.fillRect(mx, my, mw, mh);
 
-  ctx.fillStyle = '#6a7888';
+  // Draw walls/outer first
+  ctx.fillStyle = 'rgba(106, 120, 136, 0.7)';
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       if (map[y][x] === T.WALL || map[y][x] === T.OUTER) {
@@ -863,6 +909,13 @@ export function drawMinimap(
       }
     }
   }
+
+  // Draw "OASIS" text on top so it's fully visible
+  ctx.fillStyle = OASIS.teal;
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('OASIS', mx + mw / 2, my + mh / 2 + 5);
+  ctx.textAlign = 'left';
 
   for (const d of issues) {
     ctx.fillStyle = d.fixed ? '#44cc44' : '#ff4444';
