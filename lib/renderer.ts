@@ -1393,11 +1393,11 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
   // Stats row from website (3 cards)
   const statY = 284;
   const stats = [
-    { val: '20–50x', label: 'NHIs represent', label2: 'more identities' },
-    { val: '$4.88M', label: 'average cost', label2: 'of data breach (IBM)' },
-    { val: '90%+', label: 'of today’s identity', label2: 'fabric is non-human' },
+    { val: '$4.88M', label: 'average cost', label2: 'of data breach', foot: 'IBM Data Breach Report' },
+    { val: '80%', label: 'lack processes to', label2: 'offboard + revoke API keys', foot: 'cloudsecurityalliance.org' },
+    { val: '69%', label: 'do not have tools to', label2: 'prevent NHI attacks', foot: 'cloudsecurityalliance.org' },
   ];
-  const cardW = 142, cardGap = 12;
+  const cardW = 170, cardGap = 12;
   const totalW = stats.length * cardW + (stats.length - 1) * cardGap;
   const startX = VW / 2 - totalW / 2;
   
@@ -1405,11 +1405,11 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     const cx = startX + i * (cardW + cardGap);
     ctx.fillStyle = OB.bgCard + 'cc';
     ctx.beginPath();
-    ctx.roundRect(cx, statY, cardW, 68, 8);
+    ctx.roundRect(cx, statY, cardW, 74, 8);
     ctx.fill();
     ctx.strokeStyle = OB.purple + '25';
     ctx.beginPath();
-    ctx.roundRect(cx, statY, cardW, 68, 8);
+    ctx.roundRect(cx, statY, cardW, 74, 8);
     ctx.stroke();
     
     ctx.fillStyle = OB.purpleLight;
@@ -1419,7 +1419,18 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     ctx.font = '8px monospace';
     ctx.fillText(stats[i].label, cx + cardW / 2, statY + 40);
     ctx.fillText(stats[i].label2, cx + cardW / 2, statY + 52);
+    ctx.fillStyle = OB.textMuted + 'cc';
+    ctx.font = '7px monospace';
+    ctx.fillText(stats[i].foot, cx + cardW / 2, statY + 66);
   }
+
+  // Identity-security statement (exact Oasis wording)
+  ctx.fillStyle = OB.textSecondary;
+  ctx.font = '12px monospace';
+  ctx.fillText('Identity security starts from NHIs', VW / 2, 372);
+  ctx.fillStyle = OB.textMuted;
+  ctx.font = '10px monospace';
+  ctx.fillText('NHIs constitute more than 90% of today’s identity fabric, but are ungoverned.', VW / 2, 389);
 
   // Instructions
   ctx.fillStyle = OB.textSecondary;
@@ -1430,7 +1441,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     'NHIs have security issues. Fix them all!',
     'Watch out for noisy decoys that waste your time.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 370 + i * 17));
+  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 412 + i * 17));
 
   // Tagline
   ctx.fillStyle = OB.textMuted;
