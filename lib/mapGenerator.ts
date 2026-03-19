@@ -1,5 +1,5 @@
 import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES } from './constants';
-import type { TileType, Cubicle, Player, NPC, Issue } from './types';
+import type { TileType, Cubicle, Player, NPC, Issue, Camel } from './types';
 
 export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
   const map: TileType[][] = [];
@@ -83,11 +83,19 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
 
   // === OASIS ELEMENTS ===
   
-  // Palm trees at corners and along edges (inside the office)
+  // Palm trees at corners, edges, and scattered inside (doubled amount)
   const palmPositions = [
-    [2, 2], [MAP_W - 3, 2], [2, MAP_H - 3], [MAP_W - 3, MAP_H - 3], // Corners
-    [Math.floor(MAP_W / 2), 2], [Math.floor(MAP_W / 2), MAP_H - 3], // Top/bottom center
-    [2, Math.floor(MAP_H / 2)], [MAP_W - 3, Math.floor(MAP_H / 2)], // Left/right center
+    // Corners
+    [2, 2], [MAP_W - 3, 2], [2, MAP_H - 3], [MAP_W - 3, MAP_H - 3],
+    // Top/bottom center
+    [Math.floor(MAP_W / 2), 2], [Math.floor(MAP_W / 2), MAP_H - 3],
+    // Left/right center
+    [2, Math.floor(MAP_H / 2)], [MAP_W - 3, Math.floor(MAP_H / 2)],
+    // Additional palms - quarter positions
+    [Math.floor(MAP_W / 4), 2], [Math.floor(3 * MAP_W / 4), 2],
+    [Math.floor(MAP_W / 4), MAP_H - 3], [Math.floor(3 * MAP_W / 4), MAP_H - 3],
+    [2, Math.floor(MAP_H / 4)], [2, Math.floor(3 * MAP_H / 4)],
+    [MAP_W - 3, Math.floor(MAP_H / 4)], [MAP_W - 3, Math.floor(3 * MAP_H / 4)],
   ];
   for (const [px, py] of palmPositions) {
     if (py > 0 && py < MAP_H - 1 && px > 0 && px < MAP_W - 1 && map[py][px] === T.FLOOR) {
@@ -95,15 +103,15 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
     }
   }
 
-  // Cacti in the outer sandy border
+  // Cacti in the outer sandy border (more frequent)
   for (let x = 0; x < MAP_W; x++) {
-    if (x % 6 === 3) {
+    if (x % 4 === 2) {
       if (map[0][x] === T.OUTER) map[0][x] = T.CACTUS;
       if (map[MAP_H - 1][x] === T.OUTER) map[MAP_H - 1][x] = T.CACTUS;
     }
   }
   for (let y = 0; y < MAP_H; y++) {
-    if (y % 5 === 2) {
+    if (y % 3 === 1) {
       if (map[y][0] === T.OUTER) map[y][0] = T.CACTUS;
       if (map[y][MAP_W - 1] === T.OUTER) map[y][MAP_W - 1] = T.CACTUS;
     }
@@ -163,6 +171,46 @@ export function createNPCs(cubicles: Cubicle[]): NPC[] {
     distractionRef: null,
     happyTimer: 0
   }));
+}
+
+export function createCamels(map: TileType[][]): Camel[] {
+  const camels: Camel[] = [];
+  const numCamels = 3;
+  
+  // Find floor tiles in hallways for camel spawn points
+  const floorTiles: [number, number][] = [];
+  for (let y = 2; y < MAP_H - 2; y++) {
+    for (let x = 2; x < MAP_W - 2; x++) {
+      if (map[y][x] === T.FLOOR) {
+        // Check if it's in a more open area (not inside cubicles)
+        let openNeighbors = 0;
+        if (map[y-1][x] === T.FLOOR) openNeighbors++;
+        if (map[y+1][x] === T.FLOOR) openNeighbors++;
+        if (map[y][x-1] === T.FLOOR) openNeighbors++;
+        if (map[y][x+1] === T.FLOOR) openNeighbors++;
+        if (openNeighbors >= 3) {
+          floorTiles.push([x, y]);
+        }
+      }
+    }
+  }
+  
+  // Shuffle and pick camel positions
+  const shuffled = floorTiles.sort(() => Math.random() - 0.5);
+  for (let i = 0; i < Math.min(numCamels, shuffled.length); i++) {
+    const [tx, ty] = shuffled[i];
+    camels.push({
+      x: tx * TILE,
+      y: ty * TILE,
+      tileX: tx,
+      tileY: ty,
+      dir: Math.floor(Math.random() * 4),
+      frame: 0,
+      moveTimer: 0
+    });
+  }
+  
+  return camels;
 }
 
 export function createIssues(cubicles: Cubicle[], npcs: NPC[]): { issues: Issue[], deskMap: Map<string, Issue> } {

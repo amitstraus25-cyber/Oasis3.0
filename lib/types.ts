@@ -80,3 +80,13 @@ export interface DrawPersonOptions {
   happyTimer?: number;
   distracted?: boolean;
 }
+
+export interface Camel {
+  x: number;
+  y: number;
+  tileX: number;
+  tileY: number;
+  dir: number;
+  frame: number;
+  moveTimer: number;
+}

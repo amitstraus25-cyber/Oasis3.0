@@ -6,12 +6,12 @@ import {
   PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES,
 } from '@/lib/constants';
 import type {
-  TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen,
+  TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen, Camel,
 } from '@/lib/types';
-import { generateMap, createPlayer, createNPCs, createIssues } from '@/lib/mapGenerator';
+import { generateMap, createPlayer, createNPCs, createIssues, createCamels } from '@/lib/mapGenerator';
 import { initAudio, sfxFix, sfxWin, sfxLose } from '@/lib/audio';
 import {
-  drawTile, drawCubicleLabels, drawPerson, drawIssue,
+  drawTile, drawCubicleLabels, drawPerson, drawIssue, drawCamel,
   drawHUD, drawParticles, drawTitle, drawEnd,
 } from '@/lib/renderer';
 
@@ -25,6 +25,7 @@ export default function Game() {
     player: Player | null;
     npcs: NPC[];
     issues: Issue[];
+    camels: Camel[];
     particles: Particle[];
     timer: number;
     fixed: number;
@@ -35,6 +36,7 @@ export default function Game() {
     keys: Record<string, boolean>;
     lastTime: number;
     nearbyIssue: Issue | null;
+    camelBlockTimer: number;
   }>({
     screen: 'title',
     map: [],
@@ -43,6 +45,7 @@ export default function Game() {
     player: null,
     npcs: [],
     issues: [],
+    camels: [],
     particles: [],
     timer: GAME_TIME,
     fixed: 0,
@@ -53,6 +56,7 @@ export default function Game() {
     keys: {},
     lastTime: 0,
     nearbyIssue: null,
+    camelBlockTimer: 0,
   });
 
   const startGame = useCallback(() => {
@@ -65,12 +69,14 @@ export default function Game() {
     state.tick = 0;
     state.particles = [];
     state.nearbyIssue = null;
+    state.camelBlockTimer = 0;
 
     const { map, cubicles } = generateMap();
     state.map = map;
     state.cubicles = cubicles;
     state.player = createPlayer();
     state.npcs = createNPCs(cubicles);
+    state.camels = createCamels(map);
     const { issues, deskMap } = createIssues(cubicles, state.npcs);
     state.issues = issues;
     state.deskMap = deskMap;
@@ -87,6 +93,23 @@ export default function Game() {
   const updatePlayer = useCallback(() => {
     const state = gameStateRef.current;
     if (!state.player) return;
+
+    // Check if blocked by camel
+    if (state.camelBlockTimer > 0) {
+      state.camelBlockTimer--;
+      state.player.moving = false;
+      state.player.frame = 0;
+      return;
+    }
+
+    // Check for camel collision
+    for (const camel of state.camels) {
+      const dist = Math.abs(state.player.x - camel.x) + Math.abs(state.player.y - camel.y);
+      if (dist < TILE * 0.8) {
+        state.camelBlockTimer = 180; // ~3 seconds at 60fps (playing with the camel!)
+        return;
+      }
+    }
 
     let dx = 0, dy = 0;
     if (state.keys['ArrowUp'] || state.keys['KeyW']) dy = -1;
@@ -149,6 +172,44 @@ export default function Game() {
     state.camera.y = state.player.y + TILE / 2 - VH / 2;
     state.camera.x = Math.max(0, Math.min(state.camera.x, MAP_W * TILE - VW));
     state.camera.y = Math.max(0, Math.min(state.camera.y, MAP_H * TILE - VH));
+  }, []);
+
+  const updateCamels = useCallback(() => {
+    const state = gameStateRef.current;
+    
+    for (const camel of state.camels) {
+      camel.moveTimer++;
+      camel.frame = Math.floor(state.tick / 15) % 4;
+      
+      // Move every ~2 seconds
+      if (camel.moveTimer >= 120) {
+        camel.moveTimer = 0;
+        
+        // Pick a random direction
+        const dirs = [
+          { dx: 0, dy: -1 },
+          { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 },
+          { dx: 1, dy: 0 },
+        ];
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        const newTileX = camel.tileX + dir.dx;
+        const newTileY = camel.tileY + dir.dy;
+        
+        // Check if valid floor tile
+        if (
+          newTileX > 1 && newTileX < MAP_W - 2 &&
+          newTileY > 1 && newTileY < MAP_H - 2 &&
+          WALKABLE.has(state.map[newTileY][newTileX])
+        ) {
+          camel.tileX = newTileX;
+          camel.tileY = newTileY;
+          camel.x = newTileX * TILE;
+          camel.y = newTileY * TILE;
+          camel.dir = dirs.indexOf(dir);
+        }
+      }
+    }
   }, []);
 
   const updateParticles = useCallback(() => {
@@ -307,6 +368,7 @@ export default function Game() {
     updatePlayer();
     updateCamera();
     updateParticles();
+    updateCamels();
     spawnIssueParticles();
     findNearbyIssue();
 
@@ -318,7 +380,7 @@ export default function Game() {
       if (npc.happyTimer > 0) npc.happyTimer--;
       if (state.tick % 12 === 0) npc.frame = 1 - npc.frame;
     }
-  }, [updatePlayer, updateCamera, updateParticles, spawnIssueParticles, findNearbyIssue]);
+  }, [updatePlayer, updateCamera, updateParticles, updateCamels, spawnIssueParticles, findNearbyIssue]);
 
   const render = useCallback((ctx: CanvasRenderingContext2D) => {
     const state = gameStateRef.current;
@@ -362,6 +424,22 @@ export default function Game() {
         happyTimer: npc.happyTimer,
         distracted: npc.state === 'distracted'
       });
+    }
+
+    // Draw camels
+    for (const camel of state.camels) {
+      drawCamel(ctx, camel, state.camera, state.tick);
+    }
+
+    // Show "Playing with camel!" message if blocked
+    if (state.camelBlockTimer > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(VW / 2 - 100, 80, 200, 30);
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🐪 Playing with camel! 🐪', VW / 2, 100);
+      ctx.textAlign = 'left';
     }
 
     // Player glow (Oasis teal)

@@ -2,7 +2,7 @@ import {
   TILE, MAP_W, MAP_H, VW, VH, T, COL, OASIS, GAME_TIME, TOTAL_ISSUES, ISSUE_TYPES,
 } from './constants';
 import type {
-  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions,
+  TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions, Camel,
 } from './types';
 
 // OASIS letter patterns for floor branding (5 tiles wide, 7 tiles tall - smaller to fit)
@@ -858,6 +858,122 @@ export function drawIssue(
   ctx.arc(x + T2 / 2, y + T2 / 2, 22 + Math.sin(f * 0.09) * 3, 0, Math.PI * 2);
   ctx.stroke();
   ctx.lineWidth = 1;
+}
+
+// Draw camel - realistic pixel art camel
+export function drawCamel(
+  ctx: CanvasRenderingContext2D,
+  camel: Camel,
+  camera: Camera,
+  tick: number
+): void {
+  const x = camel.x - camera.x;
+  const y = camel.y - camera.y;
+  const f = Math.floor(tick / 10) % 4;
+  const bob = Math.sin(tick * 0.1) * 1;
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(x + 20, y + 38, 14, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Back legs (behind body)
+  ctx.fillStyle = '#A67B5B';
+  const backLegOffset = f < 2 ? 1 : -1;
+  // Back left leg
+  ctx.fillRect(x + 26 + backLegOffset, y + 24 + bob, 3, 12);
+  ctx.fillRect(x + 25 + backLegOffset, y + 34 + bob, 4, 3); // hoof
+  // Back right leg  
+  ctx.fillRect(x + 30 - backLegOffset, y + 24 + bob, 3, 12);
+  ctx.fillRect(x + 29 - backLegOffset, y + 34 + bob, 4, 3); // hoof
+  
+  // Main body - elongated oval shape
+  ctx.fillStyle = '#C4956A';
+  ctx.beginPath();
+  ctx.ellipse(x + 22, y + 20 + bob, 12, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Hump (single prominent hump - dromedary style)
+  ctx.fillStyle = '#B8896A';
+  ctx.beginPath();
+  ctx.ellipse(x + 22, y + 12 + bob, 6, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Hump highlight
+  ctx.fillStyle = '#D4A574';
+  ctx.beginPath();
+  ctx.ellipse(x + 20, y + 10 + bob, 3, 2, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Neck (long, curved)
+  ctx.fillStyle = '#C4956A';
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y + 18 + bob);
+  ctx.quadraticCurveTo(x + 6, y + 10 + bob, x + 8, y + 4 + bob);
+  ctx.lineTo(x + 12, y + 4 + bob);
+  ctx.quadraticCurveTo(x + 14, y + 12 + bob, x + 14, y + 18 + bob);
+  ctx.fill();
+  
+  // Head
+  ctx.fillStyle = '#C4956A';
+  ctx.beginPath();
+  ctx.ellipse(x + 6, y + 4 + bob, 5, 4, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Snout/muzzle (longer, more camel-like)
+  ctx.fillStyle = '#D4A574';
+  ctx.beginPath();
+  ctx.ellipse(x + 2, y + 6 + bob, 4, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Nostrils
+  ctx.fillStyle = '#8B6B4A';
+  ctx.fillRect(x, y + 5 + bob, 2, 2);
+  ctx.fillRect(x, y + 8 + bob, 2, 2);
+  
+  // Eye
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.ellipse(x + 6, y + 3 + bob, 2, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Eye highlight
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x + 5, y + 2 + bob, 1, 1);
+  
+  // Ear (small, pointy)
+  ctx.fillStyle = '#B8896A';
+  ctx.beginPath();
+  ctx.moveTo(x + 10, y + bob);
+  ctx.lineTo(x + 12, y - 3 + bob);
+  ctx.lineTo(x + 14, y + 1 + bob);
+  ctx.fill();
+  
+  // Front legs
+  ctx.fillStyle = '#A67B5B';
+  const frontLegOffset = f < 2 ? -1 : 1;
+  // Front left leg
+  ctx.fillRect(x + 12 + frontLegOffset, y + 24 + bob, 3, 12);
+  ctx.fillRect(x + 11 + frontLegOffset, y + 34 + bob, 4, 3); // hoof
+  // Front right leg
+  ctx.fillRect(x + 16 - frontLegOffset, y + 24 + bob, 3, 12);
+  ctx.fillRect(x + 15 - frontLegOffset, y + 34 + bob, 4, 3); // hoof
+  
+  // Tail (thin with tuft)
+  ctx.fillStyle = '#A67B5B';
+  const tailSway = Math.sin(tick * 0.15) * 2;
+  ctx.fillRect(x + 32, y + 16 + bob, 2, 8);
+  // Tail tuft
+  ctx.fillStyle = '#8B5A2B';
+  ctx.beginPath();
+  ctx.ellipse(x + 33 + tailSway, y + 24 + bob, 3, 2, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Cute heart when player is nearby/blocked
+  if (Math.sin(tick * 0.08) > 0.3) {
+    ctx.fillStyle = '#ff6b9d';
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText('♥', x + 18, y - 4 + bob);
+  }
 }
 
 // Draw particles
