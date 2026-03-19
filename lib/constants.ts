@@ -116,3 +116,16 @@ export const ISSUE_TYPES = [
   { name: 'Secret Sprawl', pillar: 'Discovery', risk: 'High', desc: 'Duplicate secrets across systems complicate rotation.' },
   { name: 'Log Overflow', pillar: 'Observability', risk: 'Med', desc: 'Excessive logging may expose sensitive data in audit trails.' },
 ];
+
+// Noisy NHI decoy types - waste the player's time
+export const DECOY_COUNT = 3;
+export const DECOY_FREEZE_FRAMES = 180; // ~3 seconds
+
+export const DECOY_MESSAGES = [
+  "Hey! I'm not broken, just misconfigured. Let me explain my entire auth flow...",
+  "Oh you're here to fix me? Actually I just need to vent about my API keys...",
+  "Wait wait wait — I'm fine! But since you're here, let me tell you about my logs...",
+  "FALSE ALARM! But did you know my certificate expires in 347 days? Let me explain...",
+  "I'm not risky, just chatty! Anyway, have you heard about my service mesh topology?",
+  "Oops — nothing wrong here! But pull up a chair, I have opinions about JWT tokens...",
+];

@@ -51,6 +51,7 @@ export interface Issue {
   fixed: boolean;
   animFrame: number;
   cubicle: Cubicle;
+  decoy: boolean;
 }
 
 export interface Particle {

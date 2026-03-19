@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import {
   TILE, MAP_W, MAP_H, VW, VH, T, WALKABLE, SPLIT_VW,
   PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES, OASIS,
+  DECOY_FREEZE_FRAMES, DECOY_MESSAGES,
 } from '@/lib/constants';
 import type {
   TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen, Camel, GameMode, Winner,
@@ -47,6 +48,10 @@ export default function Game() {
     coffeeBoost: number;
     coffeeBoost2: number;
     coolerCooldowns: Map<string, number>;
+    decoyFreeze: number;
+    decoyFreeze2: number;
+    decoyMessage: string;
+    decoyMessage2: string;
     winner: Winner;
   }>({
     screen: 'title',
@@ -78,6 +83,10 @@ export default function Game() {
     coffeeBoost: 0,
     coffeeBoost2: 0,
     coolerCooldowns: new Map(),
+    decoyFreeze: 0,
+    decoyFreeze2: 0,
+    decoyMessage: '',
+    decoyMessage2: '',
     winner: null,
   });
 
@@ -100,6 +109,10 @@ export default function Game() {
     state.coffeeBoost = 0;
     state.coffeeBoost2 = 0;
     state.coolerCooldowns = new Map();
+    state.decoyFreeze = 0;
+    state.decoyFreeze2 = 0;
+    state.decoyMessage = '';
+    state.decoyMessage2 = '';
     state.winner = null;
 
     const { map, cubicles } = generateMap();
@@ -246,6 +259,13 @@ export default function Game() {
     const state = gameStateRef.current;
     if (!state.player) return;
 
+    // Frozen by decoy NHI
+    if (state.decoyFreeze > 0) {
+      state.player.moving = false;
+      state.player.frame = 0;
+      return;
+    }
+
     checkCoffeePickup(state.player, 1);
 
     state.camelBlockTimer = updatePlayerGeneric(
@@ -273,6 +293,12 @@ export default function Game() {
   const updatePlayer2 = useCallback(() => {
     const state = gameStateRef.current;
     if (!state.player2 || state.gameMode !== 'multi') return;
+
+    if (state.decoyFreeze2 > 0) {
+      state.player2.moving = false;
+      state.player2.frame = 0;
+      return;
+    }
 
     checkCoffeePickup(state.player2, 2);
 
@@ -442,8 +468,9 @@ export default function Game() {
     const state = gameStateRef.current;
     const player = playerNum === 1 ? state.player : state.player2;
     const cooldown = playerNum === 1 ? state.cooldown : state.cooldown2;
+    const decoyFreeze = playerNum === 1 ? state.decoyFreeze : state.decoyFreeze2;
     
-    if (cooldown > 0 || !player) return;
+    if (cooldown > 0 || decoyFreeze > 0 || !player) return;
 
     const px = player.x + TILE / 2;
     const py = player.y + TILE / 2;
@@ -462,6 +489,34 @@ export default function Game() {
     }
 
     if (!best) return;
+
+    // Decoy trap! Freeze the player and show chatty message
+    if (best.decoy) {
+      const msg = DECOY_MESSAGES[Math.floor(Math.random() * DECOY_MESSAGES.length)];
+      if (playerNum === 1) {
+        state.decoyFreeze = DECOY_FREEZE_FRAMES;
+        state.decoyMessage = msg;
+      } else {
+        state.decoyFreeze2 = DECOY_FREEZE_FRAMES;
+        state.decoyMessage2 = msg;
+      }
+      
+      // Amber "oops" particles
+      for (let i = 0; i < 12; i++) {
+        state.particles.push({
+          x: best.x + TILE / 2,
+          y: best.y + TILE / 2,
+          vx: (Math.random() - 0.5) * 3,
+          vy: (Math.random() - 0.5) * 3 - 1,
+          life: 20 + Math.random() * 15,
+          maxLife: 35,
+          color: ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d'][Math.floor(Math.random() * 4)],
+          size: 2 + Math.random() * 3,
+        });
+      }
+      best.fixed = true; // Remove it so it doesn't trap again
+      return;
+    }
 
     best.fixed = true;
     player.fixes++;
@@ -550,6 +605,8 @@ export default function Game() {
     if (state.flash2 > 0) state.flash2--;
     if (state.coffeeBoost > 0) state.coffeeBoost--;
     if (state.coffeeBoost2 > 0) state.coffeeBoost2--;
+    if (state.decoyFreeze > 0) state.decoyFreeze--;
+    if (state.decoyFreeze2 > 0) state.decoyFreeze2--;
 
     // Tick cooler cooldowns
     state.coolerCooldowns.forEach((val, key) => {
@@ -587,7 +644,9 @@ export default function Game() {
     nearbyIssue: Issue | null,
     flash: number,
     camelBlockTimer: number,
-    coffeeBoost: number
+    coffeeBoost: number,
+    decoyFreeze: number,
+    decoyMessage: string
   ) => {
     const state = gameStateRef.current;
     
@@ -715,6 +774,47 @@ export default function Game() {
       ctx.fill();
     }
 
+    // Decoy NHI chatty message
+    if (decoyFreeze > 0 && decoyMessage) {
+      const msgWidth = Math.min(viewWidth - 40, 400);
+      const msgX = viewWidth / 2 - msgWidth / 2;
+      const msgY = VH / 2 - 30;
+      
+      ctx.fillStyle = 'rgba(15,15,26,0.92)';
+      ctx.beginPath();
+      ctx.roundRect(msgX, msgY, msgWidth, 60, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(msgX, msgY, msgWidth, 60, 8);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('NOISY NHI!', viewWidth / 2, msgY + 18);
+      
+      ctx.fillStyle = '#e8e5f0';
+      ctx.font = '10px monospace';
+      // Word-wrap the message
+      const words = decoyMessage.split(' ');
+      let line = '';
+      let lineY = msgY + 35;
+      for (const word of words) {
+        const test = line + (line ? ' ' : '') + word;
+        if (ctx.measureText(test).width > msgWidth - 30) {
+          ctx.fillText(line, viewWidth / 2, lineY);
+          line = word;
+          lineY += 13;
+        } else {
+          line = test;
+        }
+      }
+      if (line) ctx.fillText(line, viewWidth / 2, lineY);
+      ctx.textAlign = 'left';
+    }
+
     // Draw particles
     drawParticles(ctx, state.particles, camera);
 
@@ -739,8 +839,8 @@ export default function Game() {
 
     if (state.gameMode === 'multi' && state.player2) {
       // Split-screen rendering
-      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost);
-      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2);
+      renderPlayerView(ctx, state.player, state.camera, SPLIT_VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage);
+      renderPlayerView(ctx, state.player2, state.camera2, SPLIT_VW, SPLIT_VW, 2, state.nearbyIssue2, state.flash2, state.camelBlockTimer2, state.coffeeBoost2, state.decoyFreeze2, state.decoyMessage2);
       
       // Divider line (subtle purple)
       ctx.fillStyle = 'rgba(124,92,252,0.3)';
@@ -814,7 +914,7 @@ export default function Game() {
       
     } else {
       // Single player rendering
-      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost);
+      renderPlayerView(ctx, state.player, state.camera, VW, 0, 1, state.nearbyIssue, state.flash, state.camelBlockTimer, state.coffeeBoost, state.decoyFreeze, state.decoyMessage);
       
       drawHUD(
         ctx,

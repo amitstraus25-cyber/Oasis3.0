@@ -374,25 +374,27 @@ export function drawCubicleLabels(
     const dk = `${c.deskX},${c.deskY}`;
     const dRef = deskMap.get(dk);
     const hasIssue = dRef && !dRef.fixed;
+    const isDecoy = dRef && dRef.decoy && !dRef.fixed;
 
     const boxX = lx - 8;
     const boxY = ly - 30;
     const boxW = maxTw + 16;
     const boxH = 34;
 
-    ctx.fillStyle = hasIssue ? 'rgba(25,15,20,0.88)' : 'rgba(15,15,26,0.85)';
+    // Decoys look almost identical to real issues (amber-ish tint is very subtle)
+    ctx.fillStyle = hasIssue ? (isDecoy ? 'rgba(28,20,12,0.88)' : 'rgba(25,15,20,0.88)') : 'rgba(15,15,26,0.85)';
     ctx.beginPath();
     ctx.roundRect(boxX, boxY, boxW, boxH, 5);
     ctx.fill();
     
-    ctx.strokeStyle = hasIssue ? '#f97316' : 'rgba(124,92,252,0.5)';
+    ctx.strokeStyle = hasIssue ? (isDecoy ? '#d4a040' : '#f97316') : 'rgba(124,92,252,0.5)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(boxX, boxY, boxW, boxH, 5);
     ctx.stroke();
 
     ctx.font = 'bold 12px monospace';
-    ctx.fillStyle = hasIssue ? '#fb923c' : '#a78bfa';
+    ctx.fillStyle = hasIssue ? (isDecoy ? '#e0b050' : '#fb923c') : '#a78bfa';
     ctx.fillText(line1, lx, ly - 14);
 
     ctx.font = '11px monospace';
@@ -852,14 +854,35 @@ export function drawIssue(
       break;
   }
 
-  // Pulsing warning ring
-  const pulse = Math.sin(f * 0.09) * 0.3 + 0.55;
-  ctx.strokeStyle = `rgba(255,70,70,${pulse})`;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(x + T2 / 2, y + T2 / 2, 22 + Math.sin(f * 0.09) * 3, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.lineWidth = 1;
+  // Pulsing warning ring - amber/slower for decoys, red for real
+  if (issue.decoy) {
+    const pulse = Math.sin(f * 0.06) * 0.25 + 0.45; // Slower, softer
+    ctx.strokeStyle = `rgba(255,180,50,${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + T2 / 2, y + T2 / 2, 22 + Math.sin(f * 0.06) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    
+    // Subtle speech bubble hint (only visible if you look closely)
+    if (Math.sin(f * 0.04) > 0.2) {
+      ctx.fillStyle = `rgba(255,200,80,${0.3 + Math.sin(f * 0.05) * 0.1})`;
+      ctx.beginPath();
+      ctx.arc(x + T2 - 2, y + 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(40,20,10,0.7)`;
+      ctx.font = 'bold 6px monospace';
+      ctx.fillText('...', x + T2 - 6, y + 5);
+    }
+  } else {
+    const pulse = Math.sin(f * 0.09) * 0.3 + 0.55;
+    ctx.strokeStyle = `rgba(255,70,70,${pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + T2 / 2, y + T2 / 2, 22 + Math.sin(f * 0.09) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+  }
 }
 
 // Draw camel - realistic pixel art camel

@@ -1,4 +1,4 @@
-import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES, OASIS } from './constants';
+import { T, MAP_W, MAP_H, TILE, NHI_PROFILES, SHIRT_COLORS, HAIR_COLORS, TOTAL_ISSUES, OASIS, DECOY_COUNT } from './constants';
 import type { TileType, Cubicle, Player, NPC, Issue, Camel } from './types';
 
 export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
@@ -219,27 +219,30 @@ export function createCamels(map: TileType[][]): Camel[] {
 
 export function createIssues(cubicles: Cubicle[], npcs: NPC[]): { issues: Issue[], deskMap: Map<string, Issue> } {
   const shuffled = [...cubicles].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, TOTAL_ISSUES);
+  const totalNeeded = TOTAL_ISSUES + DECOY_COUNT;
+  const selected = shuffled.slice(0, totalNeeded);
   const issues: Issue[] = [];
   const deskMap = new Map<string, Issue>();
 
   for (let i = 0; i < selected.length; i++) {
     const c = selected[i];
+    const isDecoy = i >= TOTAL_ISSUES;
     const issue: Issue = {
-      type: i,
+      type: isDecoy ? Math.floor(Math.random() * TOTAL_ISSUES) : i,
       tileX: c.openX,
       tileY: c.openY,
       x: c.openX * TILE,
       y: c.openY * TILE,
       fixed: false,
       animFrame: 0,
-      cubicle: c
+      cubicle: c,
+      decoy: isDecoy
     };
     issues.push(issue);
     deskMap.set(`${c.deskX},${c.deskY}`, issue);
   }
 
-  // Link NPCs to their issues
+  // Link NPCs to their issues (including decoys - they look distracted too)
   for (const issue of issues) {
     for (const npc of npcs) {
       const dist = Math.abs(npc.tileX - issue.tileX) + Math.abs(npc.tileY - issue.tileY);
