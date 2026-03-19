@@ -109,15 +109,29 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
     }
   }
 
-  // Central oasis water pool (in the hallway intersection)
+  // Central oasis water pool - bigger beautiful pool
   const poolCenterX = hallX;
   const poolCenterY = hallY;
+  // Main pool area (5 wide x 3 tall)
   for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
+    for (let dx = -2; dx <= 2; dx++) {
       const wx = poolCenterX + dx;
       const wy = poolCenterY + dy;
-      if (wy > 0 && wy < MAP_H - 1 && wx > 0 && wx < MAP_W - 1 && map[wy][wx] === T.FLOOR) {
+      if (wy > 0 && wy < MAP_H - 1 && wx > 0 && wx < MAP_W - 1) {
         map[wy][wx] = T.WATER;
+      }
+    }
+  }
+  
+  // Remove any plants/palms that ended up in or adjacent to the pool
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -3; dx <= 3; dx++) {
+      const wx = poolCenterX + dx;
+      const wy = poolCenterY + dy;
+      if (wy > 0 && wy < MAP_H - 1 && wx > 0 && wx < MAP_W - 1) {
+        if (map[wy][wx] === T.PLANT || map[wy][wx] === T.PALM || map[wy][wx] === T.COOLER) {
+          map[wy][wx] = T.FLOOR;
+        }
       }
     }
   }

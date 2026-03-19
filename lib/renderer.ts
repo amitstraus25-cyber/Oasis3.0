@@ -5,6 +5,41 @@ import type {
   TileType, Cubicle, Player, NPC, Issue, Particle, Camera, DrawPersonOptions,
 } from './types';
 
+// OASIS letter patterns for floor branding (5 tiles wide each)
+const OASIS_LETTERS: Record<string, string[]> = {
+  O: ['01110', '10001', '10001', '10001', '01110'],
+  A: ['00100', '01010', '10001', '11111', '10001'],
+  S: ['01111', '10000', '01110', '00001', '11110'],
+  I: ['11111', '00100', '00100', '00100', '11111'],
+};
+
+// Check if tile is part of OASIS branding
+function isOasisBrandTile(tx: number, ty: number): boolean {
+  // Place "OASIS" in the center horizontal hallway
+  const brandY = 13; // Row for branding
+  const brandStartX = 8; // Start column
+  const letters = ['O', 'A', 'S', 'I', 'S'];
+  const letterWidth = 5;
+  const letterSpacing = 1;
+  
+  if (ty < brandY || ty >= brandY + 5) return false;
+  
+  const row = ty - brandY;
+  let currentX = brandStartX;
+  
+  for (const letter of letters) {
+    if (tx >= currentX && tx < currentX + letterWidth) {
+      const col = tx - currentX;
+      const pattern = OASIS_LETTERS[letter];
+      if (pattern && pattern[row] && pattern[row][col] === '1') {
+        return true;
+      }
+    }
+    currentX += letterWidth + letterSpacing;
+  }
+  return false;
+}
+
 // Get oasis/desert gradient color based on position
 function getOasisGradient(tx: number, ty: number): string {
   // Create a gradient from edges (sandy) to center (greener/cooler)
@@ -15,12 +50,19 @@ function getOasisGradient(tx: number, ty: number): string {
   const dist = Math.sqrt(distX * distX + distY * distY) / 1.4;
   
   // Interpolate between oasis green-tint and desert sand
-  const r = Math.floor(180 + dist * 40); // 180-220
-  const g = Math.floor(170 + dist * 20); // 170-190
-  const b = Math.floor(130 - dist * 20); // 130-110
+  let r = Math.floor(180 + dist * 40); // 180-220
+  let g = Math.floor(170 + dist * 20); // 170-190
+  let b = Math.floor(130 - dist * 20); // 130-110
   
   // Add checker pattern variation
   const checker = (tx + ty) % 2 === 0 ? 0 : -8;
+  
+  // Subtle OASIS branding - slightly teal tint
+  if (isOasisBrandTile(tx, ty)) {
+    r -= 20;
+    g += 10;
+    b += 15;
+  }
   
   return `rgb(${r + checker},${g + checker},${b + checker})`;
 }
@@ -65,46 +107,38 @@ export function drawTile(
     case T.DESK: {
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      // Chair
-      ctx.fillStyle = '#3a3a44';
-      ctx.fillRect(sx + 13, sy + 30, 14, 8);
-      ctx.fillStyle = '#484854';
-      ctx.fillRect(sx + 14, sy + 28, 12, 3);
-      ctx.fillStyle = '#2a2a30';
-      ctx.fillRect(sx + 14, sy + 37, 3, 2);
-      ctx.fillRect(sx + 23, sy + 37, 3, 2);
-      // Desk surface
+      // Desk surface (no chair - cleaner look)
       ctx.fillStyle = COL.desk;
-      ctx.fillRect(sx + 2, sy + 3, TILE - 4, 24);
+      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 20);
       ctx.fillStyle = COL.deskTop;
-      ctx.fillRect(sx + 2, sy + 3, TILE - 4, 3);
+      ctx.fillRect(sx + 2, sy + 6, TILE - 4, 3);
+      // Desk legs
+      ctx.fillStyle = '#5a4020';
+      ctx.fillRect(sx + 4, sy + 26, 4, 10);
+      ctx.fillRect(sx + TILE - 8, sy + 26, 4, 10);
       // Monitor
       ctx.fillStyle = '#1a1a24';
-      ctx.fillRect(sx + 7, sy + 7, 22, 15);
+      ctx.fillRect(sx + 8, sy + 10, 20, 13);
       const dk = `${tx},${ty}`;
       const dRef = deskMap.get(dk);
       if (dRef && !dRef.fixed) {
         ctx.fillStyle = '#441818';
-        ctx.fillRect(sx + 8, sy + 8, 20, 13);
+        ctx.fillRect(sx + 9, sy + 11, 18, 11);
         ctx.fillStyle = '#cc3333';
         ctx.font = 'bold 9px monospace';
-        ctx.fillText('⚠', sx + 14, sy + 18);
+        ctx.fillText('⚠', sx + 14, sy + 19);
       } else {
         ctx.fillStyle = '#142a1c';
-        ctx.fillRect(sx + 8, sy + 8, 20, 13);
-        ctx.fillStyle = '#3a8855';
-        ctx.fillRect(sx + 9, sy + 10, 14, 1);
-        ctx.fillRect(sx + 9, sy + 12, 10, 1);
-        ctx.fillRect(sx + 9, sy + 14, 16, 1);
-        ctx.fillRect(sx + 9, sy + 16, 8, 1);
+        ctx.fillRect(sx + 9, sy + 11, 18, 11);
+        ctx.fillStyle = OASIS.teal;
+        ctx.fillRect(sx + 11, sy + 13, 12, 1);
+        ctx.fillRect(sx + 11, sy + 15, 8, 1);
+        ctx.fillRect(sx + 11, sy + 17, 14, 1);
+        ctx.fillRect(sx + 11, sy + 19, 6, 1);
       }
-      // Keyboard/mouse
-      ctx.fillStyle = '#333';
-      ctx.fillRect(sx + 16, sy + 22, 4, 4);
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(sx + 8, sy + 24, 14, 3);
-      ctx.fillStyle = '#888';
-      ctx.fillRect(sx + 26, sy + 24, 8, 3);
+      // Monitor stand
+      ctx.fillStyle = '#2a2a30';
+      ctx.fillRect(sx + 16, sy + 23, 4, 3);
       break;
     }
 
@@ -144,12 +178,26 @@ export function drawTile(
     case T.COOLER:
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      ctx.fillStyle = '#dde8ee';
-      ctx.fillRect(sx + 10, sy + 4, 20, 30);
-      ctx.fillStyle = '#c0ccd4';
-      ctx.fillRect(sx + 10, sy + 4, 20, 4);
+      // Water cooler dispenser
+      ctx.fillStyle = '#e8e8e8';
+      ctx.fillRect(sx + 12, sy + 4, 16, 28);
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillRect(sx + 12, sy + 4, 16, 4);
+      // Water jug on top
+      ctx.fillStyle = OASIS.tealLight;
+      ctx.beginPath();
+      ctx.arc(sx + 20, sy + 8, 6, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = OASIS.teal;
-      ctx.fillRect(sx + 14, sy + 12, 12, 14);
+      ctx.beginPath();
+      ctx.arc(sx + 20, sy + 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+      // Dispenser tap
+      ctx.fillStyle = '#888';
+      ctx.fillRect(sx + 18, sy + 18, 4, 6);
+      // Base
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(sx + 10, sy + 32, 20, 4);
       break;
 
     case T.PALM:
@@ -226,23 +274,45 @@ export function drawTile(
       break;
 
     case T.WATER:
-      // Oasis water pool
-      ctx.fillStyle = getOasisGradient(tx, ty);
+      // Beautiful oasis water pool
+      // Base water color
+      ctx.fillStyle = OASIS.tealDark;
       ctx.fillRect(sx, sy, TILE, TILE);
-      // Water
-      ctx.fillStyle = OASIS.waterDark;
+      
+      // Deeper water gradient in center
+      ctx.fillStyle = '#0a8a7a';
+      ctx.fillRect(sx + 4, sy + 4, TILE - 8, TILE - 8);
+      
+      // Animated ripples
+      const time = Date.now() * 0.002;
+      const ripple1 = Math.sin(time + tx * 0.5) * 0.3 + 0.7;
+      const ripple2 = Math.sin(time * 1.3 + ty * 0.7) * 0.3 + 0.7;
+      
+      ctx.fillStyle = `rgba(94, 234, 212, ${ripple1 * 0.3})`;
       ctx.beginPath();
-      ctx.ellipse(sx + TILE / 2, sy + TILE / 2, TILE / 2 - 2, TILE / 2 - 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(sx + 12, sy + 12, 6 + ripple1 * 2, 4 + ripple1, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Lighter water highlight
-      ctx.fillStyle = OASIS.water;
+      
+      ctx.fillStyle = `rgba(94, 234, 212, ${ripple2 * 0.25})`;
       ctx.beginPath();
-      ctx.ellipse(sx + TILE / 2 - 4, sy + TILE / 2 - 4, TILE / 4, TILE / 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(sx + 28, sy + 24, 5 + ripple2 * 2, 3 + ripple2, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Sparkle
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillRect(sx + 12, sy + 10, 3, 3);
-      ctx.fillRect(sx + 24, sy + 16, 2, 2);
+      
+      // Light reflection/sparkles
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      if (Math.sin(time * 2 + tx + ty) > 0.7) {
+        ctx.fillRect(sx + 8 + (tx % 3) * 6, sy + 6 + (ty % 2) * 8, 3, 3);
+      }
+      if (Math.sin(time * 2.5 + tx * 2) > 0.8) {
+        ctx.fillRect(sx + 22, sy + 18, 2, 2);
+      }
+      
+      // Edge foam/bubbles
+      ctx.fillStyle = 'rgba(200, 250, 245, 0.4)';
+      ctx.fillRect(sx, sy, TILE, 2);
+      ctx.fillRect(sx, sy, 2, TILE);
+      ctx.fillRect(sx + TILE - 2, sy, 2, TILE);
+      ctx.fillRect(sx, sy + TILE - 2, TILE, 2);
       break;
   }
 }
@@ -426,192 +496,328 @@ export function drawIssue(
   if (x < -80 || y < -80 || x > VW + 40 || y > VH + 40) return;
   const f = issue.animFrame;
   const T2 = TILE;
+  const cx = x + T2 / 2;
+  const cy = y + T2 / 2;
 
   switch (issue.type) {
-    case 0: // Credential Leak - coffee spill
-      ctx.fillStyle = '#cc9922';
-      ctx.fillRect(x + 6, y + 10, 18, 6);
-      ctx.fillRect(x + 4, y + 6, 12, 14);
-      ctx.fillStyle = '#aa7718';
-      ctx.fillRect(x + 7, y + 10, 6, 4);
-      ctx.fillRect(x + 20, y + 10, 4, 8);
-      ctx.fillRect(x + 24, y + 12, 4, 6);
-      ctx.fillStyle = '#5a3000';
+    case 0: // Credential Leak - Dripping key
+      // Key body
+      ctx.fillStyle = '#ffd700';
       ctx.beginPath();
-      ctx.ellipse(x + T2 / 2, y + 30, 16, 6, 0, 0, Math.PI * 2);
+      ctx.arc(cx - 4, cy - 8, 8, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#7a4800';
+      ctx.fillStyle = '#b8860b';
       ctx.beginPath();
-      ctx.ellipse(x + T2 / 2, y + 30, 10, 3, 0, 0, Math.PI * 2);
+      ctx.arc(cx - 4, cy - 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Key shaft
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(cx - 1, cy - 4, 4, 16);
+      // Key teeth
+      ctx.fillRect(cx + 3, cy + 4, 6, 3);
+      ctx.fillRect(cx + 3, cy + 9, 4, 3);
+      // Dripping effect
+      const drip1 = (f * 2) % 30;
+      const drip2 = ((f * 2) + 15) % 30;
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(cx - 2, cy + 14 + drip1, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx + 4, cy + 12 + drip2, 2, 0, Math.PI * 2);
       ctx.fill();
       break;
 
-    case 1: // Security Breach - fire
-      ctx.fillStyle = '#cc2222';
-      ctx.fillRect(x + 8, y + 10, 6, 16);
-      ctx.fillRect(x + 14, y + 6, 12, 8);
-      ctx.fillRect(x + 26, y + 10, 6, 16);
-      ctx.fillStyle = '#ff4444';
-      ctx.fillRect(x + 14, y + 14, 12, 12);
-      ctx.fillStyle = '#881111';
-      ctx.fillRect(x + 16, y + 12, 2, 14);
-      ctx.fillRect(x + 22, y + 12, 2, 14);
-      for (let i = 0; i < 5; i++) {
-        const fx = x + 6 + Math.sin(f * 0.25 + i * 1.2) * 8;
-        const fy = y + 28 - i * 5 - Math.abs(Math.sin(f * 0.18 + i * 0.7)) * 5;
-        ctx.fillStyle = i < 2 ? '#ff2200' : (i < 3 ? '#ff7700' : '#ffcc00');
-        ctx.fillRect(fx, fy, 6 + Math.sin(f * 0.1 + i) * 2, 5);
+    case 1: // Security Breach - Shield with crack
+      // Shield shape
+      ctx.fillStyle = '#cc3333';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 14);
+      ctx.lineTo(cx + 14, cy - 6);
+      ctx.lineTo(cx + 12, cy + 10);
+      ctx.lineTo(cx, cy + 16);
+      ctx.lineTo(cx - 12, cy + 10);
+      ctx.lineTo(cx - 14, cy - 6);
+      ctx.closePath();
+      ctx.fill();
+      // Inner shield
+      ctx.fillStyle = '#ff5555';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 10);
+      ctx.lineTo(cx + 10, cy - 4);
+      ctx.lineTo(cx + 8, cy + 6);
+      ctx.lineTo(cx, cy + 12);
+      ctx.lineTo(cx - 8, cy + 6);
+      ctx.lineTo(cx - 10, cy - 4);
+      ctx.closePath();
+      ctx.fill();
+      // Crack
+      ctx.strokeStyle = '#220000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 2, cy - 8);
+      ctx.lineTo(cx + 3, cy - 2);
+      ctx.lineTo(cx - 1, cy + 4);
+      ctx.lineTo(cx + 4, cy + 10);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Pulse effect
+      if (Math.sin(f * 0.15) > 0) {
+        ctx.strokeStyle = 'rgba(255,0,0,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.lineWidth = 1;
       }
       break;
 
-    case 2: // Expired Certificate
-      ctx.fillStyle = '#ddd';
-      ctx.fillRect(x + 6, y + 2, 28, 34);
-      ctx.fillStyle = '#eee';
-      ctx.fillRect(x + 8, y + 4, 24, 28);
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(x + 10, y + 8, 20, 1);
-      ctx.fillRect(x + 10, y + 12, 16, 1);
-      ctx.fillRect(x + 10, y + 16, 18, 1);
-      const flash = Math.sin(f * 0.2) > 0;
-      ctx.strokeStyle = flash ? '#ff2222' : '#cc0000';
-      ctx.lineWidth = 2;
+    case 2: // Expired Certificate - Document with X
+      // Document
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(x + 8, y + 2, 24, 32);
+      // Folded corner
+      ctx.fillStyle = '#d0d0d0';
       ctx.beginPath();
-      ctx.moveTo(x + 14, y + 20);
-      ctx.lineTo(x + 26, y + 32);
-      ctx.moveTo(x + 26, y + 20);
-      ctx.lineTo(x + 14, y + 32);
+      ctx.moveTo(x + 24, y + 2);
+      ctx.lineTo(x + 32, y + 10);
+      ctx.lineTo(x + 24, y + 10);
+      ctx.closePath();
+      ctx.fill();
+      // Lines
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(x + 12, y + 14, 16, 2);
+      ctx.fillRect(x + 12, y + 20, 12, 2);
+      ctx.fillRect(x + 12, y + 26, 14, 2);
+      // Red X stamp
+      const flash = Math.sin(f * 0.15) > 0;
+      ctx.strokeStyle = flash ? '#ff0000' : '#cc0000';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x + 10, y + 8);
+      ctx.lineTo(x + 22, y + 20);
+      ctx.moveTo(x + 22, y + 8);
+      ctx.lineTo(x + 10, y + 20);
       ctx.stroke();
       ctx.lineWidth = 1;
-      ctx.fillStyle = flash ? '#ff2222' : '#cc0000';
-      ctx.font = 'bold 6px monospace';
-      ctx.fillText('EXPIRED', x + 9, y + 35);
+      // EXPIRED text
+      ctx.fillStyle = '#cc0000';
+      ctx.font = 'bold 7px monospace';
+      ctx.fillText('EXPIRED', x + 8, y + 38);
       break;
 
-    case 3: // Stale API Token
-      ctx.fillStyle = '#aa8833';
+    case 3: // Stale API Token - Old clock/timer
+      // Clock face
+      ctx.fillStyle = '#ddd';
       ctx.beginPath();
-      ctx.arc(x + T2 / 2, y + T2 / 2, 14, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#887722';
+      ctx.fillStyle = '#bbb';
       ctx.beginPath();
-      ctx.arc(x + T2 / 2, y + T2 / 2, 10, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 12, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#665511';
+      ctx.fillStyle = '#999';
       ctx.beginPath();
-      ctx.arc(x + T2 / 2, y + T2 / 2, 4, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 10, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(100,100,100,0.5)';
+      // Clock hands (frozen)
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(x + 6, y + 4);
-      ctx.lineTo(x + 18, y + 16);
-      ctx.moveTo(x + 28, y + 6);
-      ctx.lineTo(x + 20, y + 18);
-      ctx.moveTo(x + 30, y + 30);
-      ctx.lineTo(x + 22, y + 22);
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx - 4, cy - 6);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(150,150,130,0.3)';
-      ctx.fillRect(x + 8, y + 8, 24, 24);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + 6, cy + 2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Cobwebs
+      ctx.strokeStyle = 'rgba(100,100,100,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(cx - 12, cy - 8);
+      ctx.quadraticCurveTo(cx - 6, cy - 10, cx, cy - 14);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + 10, cy - 10);
+      ctx.quadraticCurveTo(cx + 14, cy - 4, cx + 14, cy + 4);
+      ctx.stroke();
       break;
 
-    case 4: // Permission Conflict
-      ctx.fillStyle = '#4466cc';
-      ctx.fillRect(x + 2, y + 6, 14, 18);
-      ctx.fillStyle = '#3355bb';
-      ctx.fillRect(x + 4, y + 8, 10, 14);
-      ctx.fillStyle = '#cc4444';
-      ctx.fillRect(x + 24, y + 6, 14, 18);
-      ctx.fillStyle = '#bb3333';
-      ctx.fillRect(x + 26, y + 8, 10, 14);
-      const blt = Math.sin(f * 0.2) * 3;
-      ctx.fillStyle = '#ffee44';
-      ctx.fillRect(x + 17, y + 10 + blt, 6, 3);
-      ctx.fillRect(x + 18, y + 8 + blt, 4, 8);
-      ctx.fillStyle = '#ff4444';
-      ctx.font = 'bold 10px monospace';
-      ctx.fillText('!', x + 7, y + 30);
-      ctx.fillText('!', x + 30, y + 30);
+    case 4: // Permission Conflict - Two clashing locks
+      // Blue lock
+      ctx.fillStyle = '#4477dd';
+      ctx.fillRect(x + 4, y + 14, 14, 12);
+      ctx.fillStyle = '#3366cc';
+      ctx.beginPath();
+      ctx.arc(x + 11, y + 14, 6, Math.PI, 0);
+      ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#4477dd';
+      ctx.beginPath();
+      ctx.arc(x + 11, y + 12, 5, Math.PI, 0);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Red lock
+      ctx.fillStyle = '#dd4444';
+      ctx.fillRect(x + 22, y + 14, 14, 12);
+      ctx.fillStyle = '#cc3333';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#dd4444';
+      ctx.beginPath();
+      ctx.arc(x + 29, y + 12, 5, Math.PI, 0);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Lightning bolt conflict
+      const boltY = Math.sin(f * 0.2) * 2;
+      ctx.fillStyle = '#ffdd00';
+      ctx.beginPath();
+      ctx.moveTo(cx, y + 6 + boltY);
+      ctx.lineTo(cx + 4, y + 14 + boltY);
+      ctx.lineTo(cx, y + 14 + boltY);
+      ctx.lineTo(cx + 2, y + 22 + boltY);
+      ctx.lineTo(cx - 2, y + 16 + boltY);
+      ctx.lineTo(cx, y + 16 + boltY);
+      ctx.closePath();
+      ctx.fill();
       break;
 
-    case 5: // Unrotated Secret
-      ctx.fillStyle = '#cc8822';
-      ctx.fillRect(x + 12, y + 12, 16, 6);
-      ctx.fillRect(x + 8, y + 8, 12, 14);
-      ctx.fillStyle = '#aa6618';
-      ctx.fillRect(x + 10, y + 12, 6, 4);
-      ctx.fillRect(x + 24, y + 12, 4, 8);
-      ctx.fillRect(x + 28, y + 14, 4, 5);
-      const vib = Math.sin(f * 0.35) * 3;
+    case 5: // Unrotated Secret - Key with circular arrows
+      // Key
+      ctx.fillStyle = '#e8a030';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 4, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#c88020';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e8a030';
+      ctx.fillRect(cx - 2, cy + 2, 4, 12);
+      ctx.fillRect(cx + 2, cy + 8, 5, 2);
+      ctx.fillRect(cx + 2, cy + 12, 3, 2);
+      // Rotating arrows
+      const angle = f * 0.05;
       ctx.strokeStyle = '#ff6644';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x + T2 / 2 + vib, y + T2 / 2, 16, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 16, angle, angle + Math.PI * 1.2);
       ctx.stroke();
+      // Arrow head
+      const ax = cx + Math.cos(angle + Math.PI * 1.2) * 16;
+      const ay = cy + Math.sin(angle + Math.PI * 1.2) * 16;
+      ctx.fillStyle = '#ff6644';
       ctx.beginPath();
-      ctx.arc(x + T2 / 2 + vib, y + 14, 5, Math.PI * 0.7, Math.PI * 2.3);
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - 6, ay - 2);
+      ctx.lineTo(ax - 4, ay + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.lineWidth = 1;
+      break;
+
+    case 6: // Dormant Identity - Sleeping robot
+      // Robot head
+      ctx.fillStyle = '#888';
+      ctx.fillRect(x + 10, y + 6, 20, 16);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + 12, y + 8, 16, 12);
+      // Closed eyes (sleeping)
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 14, y + 14);
+      ctx.lineTo(x + 18, y + 14);
+      ctx.moveTo(x + 22, y + 14);
+      ctx.lineTo(x + 26, y + 14);
       ctx.stroke();
       ctx.lineWidth = 1;
-      ctx.fillStyle = '#ff3322';
-      ctx.beginPath();
-      ctx.arc(x + 32, y + 6, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 7px monospace';
-      ctx.fillText('!', x + 30, y + 9);
-      break;
-
-    case 6: // Dormant Identity
-      ctx.fillStyle = '#777';
-      ctx.beginPath();
-      ctx.arc(x + T2 / 2, y + 12, 10, 0, Math.PI * 2);
-      ctx.fill();
+      // Antenna
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(x + 19, y + 2, 2, 6);
       ctx.fillStyle = '#666';
-      ctx.fillRect(x + 10, y + 20, 20, 14);
-      ctx.strokeStyle = 'rgba(120,120,120,0.4)';
       ctx.beginPath();
-      ctx.moveTo(x + 6, y + 4);
-      ctx.lineTo(x + 18, y + 12);
-      ctx.moveTo(x + 34, y + 8);
-      ctx.lineTo(x + 24, y + 14);
-      ctx.stroke();
-      ctx.fillStyle = '#aaaaff';
-      ctx.font = '12px monospace';
-      const zy = Math.sin(f * 0.08) * 4;
-      ctx.fillText('Z', x + 28, y + 8 + zy);
-      ctx.font = '9px monospace';
-      ctx.fillText('z', x + 34, y + 2 + zy * 0.6);
-      break;
-
-    case 7: // Secret Sprawl
-      for (let i = 0; i < 4; i++) {
-        const kx = x + 4 + i * 8 + Math.sin(f * 0.03 + i * 2) * 3;
-        const ky = y + 6 + i * 6;
-        ctx.fillStyle = '#cc9922';
-        ctx.fillRect(kx, ky, 8, 3);
-        ctx.fillRect(kx - 2, ky - 2, 6, 7);
-      }
-      ctx.fillStyle = 'rgba(60,100,200,0.3)';
-      const spread = 12 + Math.sin(f * 0.04) * 3;
-      ctx.beginPath();
-      ctx.ellipse(x + T2 / 2, y + 30, spread, 6, 0, 0, Math.PI * 2);
+      ctx.arc(x + 20, y + 2, 3, 0, Math.PI * 2);
       ctx.fill();
+      // Robot body
+      ctx.fillStyle = '#777';
+      ctx.fillRect(x + 12, y + 22, 16, 12);
+      // Z's floating
+      const zy = Math.sin(f * 0.08) * 3;
+      ctx.fillStyle = '#aaddff';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('Z', x + 30, y + 8 + zy);
+      ctx.font = '9px monospace';
+      ctx.fillText('z', x + 34, y + 4 + zy * 0.7);
+      ctx.font = '7px monospace';
+      ctx.fillText('z', x + 36, y + 0 + zy * 0.5);
       break;
 
-    case 8: // Log Overflow
-      ctx.fillStyle = '#1a2a1a';
-      ctx.fillRect(x + 4, y + 4, 32, 24);
-      ctx.fillStyle = '#0a1a0a';
-      ctx.fillRect(x + 5, y + 5, 30, 22);
-      ctx.fillStyle = '#33cc66';
-      ctx.font = '6px monospace';
-      const scroll = f % 60;
-      const lines = ['> ERR connect', '  WARN timeout', '  ERR auth_fail', '> CRIT overflow', '  ERR key_exp', '> WARN stale'];
-      for (let i = 0; i < 4; i++) {
-        const li = (Math.floor(scroll / 15) + i) % lines.length;
-        ctx.fillText(lines[li], x + 7, y + 12 + i * 5);
+    case 7: // Secret Sprawl - Multiple scattered keys
+      const keyPositions = [
+        [6, 4], [22, 8], [10, 20], [26, 24], [16, 14]
+      ];
+      for (let i = 0; i < keyPositions.length; i++) {
+        const [kx, ky] = keyPositions[i];
+        const wobble = Math.sin(f * 0.05 + i * 1.5) * 2;
+        ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#e8a030';
+        // Key head
+        ctx.beginPath();
+        ctx.arc(x + kx + wobble, y + ky, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Key shaft
+        ctx.fillRect(x + kx - 1 + wobble, y + ky + 3, 2, 6);
+        ctx.fillRect(x + kx + 1 + wobble, y + ky + 6, 3, 2);
       }
-      ctx.fillStyle = 'rgba(50,200,100,0.15)';
-      ctx.fillRect(x + 5, y + 5, 30, 22);
+      // Connection lines
+      ctx.strokeStyle = 'rgba(255,100,100,0.3)';
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(x + keyPositions[0][0], y + keyPositions[0][1]);
+      for (let i = 1; i < keyPositions.length; i++) {
+        ctx.lineTo(x + keyPositions[i][0], y + keyPositions[i][1]);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      break;
+
+    case 8: // Log Overflow - Terminal with scrolling text
+      // Monitor frame
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(x + 4, y + 2, 32, 28);
+      // Screen
+      ctx.fillStyle = '#0a1810';
+      ctx.fillRect(x + 6, y + 4, 28, 22);
+      // Scrolling log lines
+      ctx.fillStyle = '#33ff66';
+      ctx.font = '6px monospace';
+      const scrollOffset = (f * 0.5) % 20;
+      const logLines = [
+        '> ERROR',
+        'WARN: mem',
+        '> CRIT!',
+        'timeout',
+        'ERR: key',
+        '> ALERT'
+      ];
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x + 6, y + 4, 28, 22);
+      ctx.clip();
+      for (let i = 0; i < 6; i++) {
+        const lineY = y + 10 + i * 5 - scrollOffset;
+        if (lineY > y + 2 && lineY < y + 28) {
+          ctx.fillStyle = logLines[i].includes('CRIT') || logLines[i].includes('ERROR') ? '#ff4444' : '#33ff66';
+          ctx.fillText(logLines[i], x + 8, lineY);
+        }
+      }
+      ctx.restore();
+      // Overflow indicator
+      ctx.fillStyle = '#ff3333';
+      ctx.font = 'bold 8px monospace';
+      ctx.fillText('!!!', x + 24, y + 36);
+      // Monitor stand
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + 16, y + 30, 8, 4);
+      ctx.fillRect(x + 12, y + 34, 16, 3);
       break;
   }
 
