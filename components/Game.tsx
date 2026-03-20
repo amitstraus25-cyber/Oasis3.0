@@ -1304,7 +1304,6 @@ export default function Game({ isMobile = false }: GameProps) {
 
     const handleClick = (e: MouseEvent) => {
       const state = gameStateRef.current;
-      if (state.screen !== 'playing') return;
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -1312,6 +1311,48 @@ export default function Game({ isMobile = false }: GameProps) {
       const scaleY = VH / rect.height;
       const cx = (e.clientX - rect.left) * scaleX;
       const cy = (e.clientY - rect.top) * scaleY;
+
+      // Title screen: click anywhere to proceed
+      if (state.screen === 'title') {
+        initAudio();
+        state.screen = 'modeSelect';
+        return;
+      }
+
+      // Mode select: click cards to select, click selected card to start
+      if (state.screen === 'modeSelect') {
+        const card1 = cx >= VW / 2 - 190 && cx <= VW / 2 - 20 && cy >= 145 && cy <= 345;
+        const card2 = cx >= VW / 2 + 20 && cx <= VW / 2 + 190 && cy >= 145 && cy <= 345;
+        if (card1) {
+          if (state.modeSelectChoice === 'single') {
+            startGame('single');
+          } else {
+            state.modeSelectChoice = 'single';
+          }
+        } else if (card2 && !isMobile) {
+          if (state.modeSelectChoice === 'multi') {
+            startGame('multi');
+          } else {
+            state.modeSelectChoice = 'multi';
+          }
+        }
+        return;
+      }
+
+      // End screen: click to continue
+      if (state.screen === 'win' || state.screen === 'lose') {
+        if (state.enteringName) {
+          state.enteringName = false;
+        } else {
+          state.screen = 'title';
+          state.camera = { x: 0, y: 0 };
+          state.camera2 = { x: 0, y: 0 };
+          setMobileControlsVisible(false);
+        }
+        return;
+      }
+
+      if (state.screen !== 'playing') return;
 
       // Pause overlay buttons
       if (state.paused) {
