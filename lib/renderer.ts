@@ -1860,8 +1860,12 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   ctx.fillText('2 PLAYERS', VW / 2 + 105, 265);
   
   if (multiDisabled) {
-    ctx.fillStyle = OB.textMuted;
-    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = 'rgba(255,85,85,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(VW / 2 + 45, 285, 120, 30, 6);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px monospace';
     ctx.fillText('PC ONLY', VW / 2 + 105, 305);
   } else if (!isSingle) {
     ctx.fillStyle = OB.orange;
