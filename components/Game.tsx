@@ -1469,47 +1469,36 @@ export default function Game({ isMobile = false }: GameProps) {
     }
   }, [tryFixForPlayer]);
 
-  if (isMobile) {
-    return (
-      <div className="mobile-wrapper">
-        <canvas
-          ref={canvasRef}
-          width={VW}
-          height={VH}
-          className="game-canvas mobile-canvas"
-          onTouchEnd={handleCanvasTap}
-        />
-        {mobileControlsVisible && (
-          <div className="mobile-controls">
-            <div
-              className="joystick-zone"
-              onTouchStart={(e) => handleJoystickTouch(e)}
-              onTouchMove={(e) => handleJoystickTouch(e)}
-              onTouchEnd={(e) => handleJoystickTouch(e, true)}
-              onTouchCancel={(e) => handleJoystickTouch(e, true)}
-            >
-              <div className="joystick-ring">
-                <div ref={joystickKnobRef} className="joystick-knob" />
-              </div>
-            </div>
-            <div
-              className="fix-button"
-              onTouchStart={handleFixTap}
-            >
-              FIX
+  return (
+    <div className={isMobile ? 'mobile-wrapper' : ''}>
+      <canvas
+        ref={canvasRef}
+        width={VW}
+        height={VH}
+        className={`game-canvas${isMobile ? ' mobile-canvas' : ''}`}
+        onTouchEnd={isMobile ? handleCanvasTap : undefined}
+      />
+      {isMobile && mobileControlsVisible && (
+        <div className="mobile-controls">
+          <div
+            className="joystick-zone"
+            onTouchStart={(e) => handleJoystickTouch(e)}
+            onTouchMove={(e) => handleJoystickTouch(e)}
+            onTouchEnd={(e) => handleJoystickTouch(e, true)}
+            onTouchCancel={(e) => handleJoystickTouch(e, true)}
+          >
+            <div className="joystick-ring">
+              <div ref={joystickKnobRef} className="joystick-knob" />
             </div>
           </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={VW}
-      height={VH}
-      className="game-canvas"
-    />
+          <div
+            className="fix-button"
+            onTouchStart={handleFixTap}
+          >
+            FIX
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
