@@ -1545,6 +1545,25 @@ export function drawHUD(
     ctx.fillRect(0, 0, VW, VH);
   }
 
+  // Menu button (to the left of mute)
+  const menuX = VW - timerBoxW - 82;
+  const menuY = 10;
+  const menuW = 30;
+  const menuH = 30;
+  ctx.fillStyle = 'rgba(15,15,26,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(menuX, menuY, menuW, menuH, 6);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(124,92,252,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(menuX, menuY, menuW, menuH, 6);
+  ctx.stroke();
+  ctx.fillStyle = '#9892a6';
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(menuX + 8, menuY + 9 + i * 5, 14, 2);
+  }
+
   // Music toggle button (to the left of the timer)
   const muteX = VW - timerBoxW - 46;
   const muteY = 10;

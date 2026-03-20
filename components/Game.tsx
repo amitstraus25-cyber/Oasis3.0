@@ -73,6 +73,7 @@ export default function Game({ isMobile = false }: GameProps) {
     scoreSubmitted: boolean;
     modeSelectChoice: GameMode;
     musicMuted: boolean;
+    paused: boolean;
   }>({
     screen: 'title',
     gameMode: 'single',
@@ -118,6 +119,7 @@ export default function Game({ isMobile = false }: GameProps) {
     scoreSubmitted: false,
     modeSelectChoice: 'single',
     musicMuted: false,
+    paused: false,
   });
 
   const startGame = useCallback((mode: GameMode) => {
@@ -736,6 +738,7 @@ export default function Game({ isMobile = false }: GameProps) {
   const update = useCallback((dt: number) => {
     const state = gameStateRef.current;
     if (state.screen !== 'playing') return;
+    if (state.paused) return;
 
     state.tick++;
     state.timer -= dt;
@@ -1131,6 +1134,37 @@ export default function Game({ isMobile = false }: GameProps) {
       );
     }
 
+    // Pause overlay
+    if (state.paused && state.screen === 'playing') {
+      ctx.fillStyle = 'rgba(15,15,26,0.85)';
+      ctx.fillRect(0, 0, VW, VH);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#e8e5f0';
+      ctx.font = 'bold 36px monospace';
+      ctx.fillText('PAUSED', VW / 2, VH / 2 - 60);
+
+      // Resume button
+      ctx.fillStyle = 'rgba(124,92,252,0.8)';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 100, VH / 2 - 25, 200, 40, 8);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText('RESUME', VW / 2, VH / 2 + 1);
+
+      // Exit button
+      ctx.fillStyle = 'rgba(249,115,22,0.8)';
+      ctx.beginPath();
+      ctx.roundRect(VW / 2 - 100, VH / 2 + 30, 200, 40, 8);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText('EXIT TO MENU', VW / 2, VH / 2 + 56);
+
+      ctx.textAlign = 'left';
+    }
+
     // Draw end screens
     if (state.screen === 'win' || state.screen === 'lose') {
       drawEnd(
@@ -1236,6 +1270,16 @@ export default function Game({ isMobile = false }: GameProps) {
         }
       }
 
+      // Pause toggle
+      if (state.screen === 'playing' && e.code === 'Escape') {
+        e.preventDefault();
+        state.paused = !state.paused;
+        return;
+      }
+
+      // Skip gameplay keys when paused
+      if (state.paused) return;
+
       // Player 1 fix: E, Space, or Enter (Enter only in single player)
       if (state.screen === 'playing' && (e.code === 'Space' || e.code === 'KeyE' || (e.code === 'Enter' && state.gameMode === 'single'))) {
         e.preventDefault();
@@ -1268,6 +1312,34 @@ export default function Game({ isMobile = false }: GameProps) {
       const scaleY = VH / rect.height;
       const cx = (e.clientX - rect.left) * scaleX;
       const cy = (e.clientY - rect.top) * scaleY;
+
+      // Pause overlay buttons
+      if (state.paused) {
+        const btnX = VW / 2 - 100, btnW = 200;
+        if (cx >= btnX && cx <= btnX + btnW) {
+          if (cy >= VH / 2 - 25 && cy <= VH / 2 + 15) {
+            state.paused = false;
+          }
+          if (cy >= VH / 2 + 30 && cy <= VH / 2 + 70) {
+            state.paused = false;
+            state.screen = 'title';
+            state.camera = { x: 0, y: 0 };
+            state.camera2 = { x: 0, y: 0 };
+            stopMusic();
+            setMobileControlsVisible(false);
+          }
+        }
+        return;
+      }
+
+      // Menu button
+      const menuX = VW - 120 - 82;
+      if (cx >= menuX && cx <= menuX + 30 && cy >= 10 && cy <= 40) {
+        state.paused = true;
+        return;
+      }
+
+      // Mute button
       const muteX = VW - 120 - 46;
       const muteY = 10;
       if (cx >= muteX && cx <= muteX + 30 && cy >= muteY && cy <= muteY + 30) {
