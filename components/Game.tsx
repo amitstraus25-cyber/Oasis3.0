@@ -1180,7 +1180,7 @@ export default function Game({ isMobile = false }: GameProps) {
       );
       drawScoreboard(ctx, state.scores, state.playerName, state.enteringName, state.tick);
     }
-  }, [renderPlayerView]);
+  }, [renderPlayerView, isMobile]);
 
   // Game loop
   useEffect(() => {
