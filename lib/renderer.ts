@@ -1553,34 +1553,30 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
     ctx.fillText(stats[i].foot, cx + cardW / 2, statY + 66);
   }
 
-  // Identity-security statement (exact Oasis wording)
-  ctx.fillStyle = OB.textSecondary;
-  ctx.font = '12px monospace';
-  ctx.fillText('Identity security starts from NHIs', VW / 2, 372);
+  // Identity-security statement
   ctx.fillStyle = OB.textMuted;
   ctx.font = '10px monospace';
-  ctx.fillText('NHIs constitute more than 90% of today’s identity fabric, but are ungoverned.', VW / 2, 389);
+  ctx.fillText('NHIs constitute more than 90% of today’s identity fabric, but are ungoverned.', VW / 2, 375);
 
   // Instructions
   ctx.fillStyle = OB.textSecondary;
   ctx.font = '13px monospace';
   const lines = [
     'WASD to move  |  E / SPACE to remediate',
-    '',
     'NHIs have security issues. Fix them all!',
     'Watch out for noisy decoys that waste your time.'
   ];
-  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 412 + i * 17));
+  lines.forEach((l, i) => ctx.fillText(l, VW / 2, 440 + i * 17));
 
   // Tagline
   ctx.fillStyle = OB.textMuted;
   ctx.font = '11px monospace';
-  ctx.fillText('Turning IAM friction into accelerated AI adoption', VW / 2, 460);
+  ctx.fillText('Turning IAM friction into accelerated AI adoption', VW / 2, 500);
 
   // Start button (orange CTA like the website)
   if (Math.sin(Date.now() * 0.004) > 0) {
     const btnW = 320, btnH = 40;
-    const btnX = VW / 2 - btnW / 2, btnY = 490;
+    const btnX = VW / 2 - btnW / 2, btnY = 520;
     ctx.fillStyle = OB.orange;
     ctx.beginPath();
     ctx.roundRect(btnX, btnY, btnW, btnH, 8);
@@ -1735,7 +1731,7 @@ export function drawScoreboard(
   tick: number
 ): void {
   const bw = 340, bh = 260;
-  const bx = VW / 2 - bw / 2, by = VH / 2 - bh / 2 + 30;
+  const bx = VW / 2 - bw / 2, by = VH / 2 - bh / 2 + 70;
   
   ctx.fillStyle = 'rgba(15,15,26,0.95)';
   ctx.beginPath();
@@ -1833,13 +1829,14 @@ export function drawEnd(
   gameMode: GameMode = 'single',
   winner: Winner = null,
   p1Fixes: number = 0,
-  p2Fixes: number = 0
+  p2Fixes: number = 0,
+  isEnteringName: boolean = false
 ): void {
   ctx.fillStyle = OB.bg + 'f5';
   ctx.fillRect(0, 0, VW, VH);
 
   // Subtle glow at center (purple for both win/lose)
-  const glowGrad = ctx.createRadialGradient(VW / 2, 200, 0, VW / 2, 200, 300);
+  const glowGrad = ctx.createRadialGradient(VW / 2, 120, 0, VW / 2, 120, 300);
   glowGrad.addColorStop(0, win ? 'rgba(124,92,252,0.12)' : 'rgba(249,115,22,0.1)');
   glowGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = glowGrad;
@@ -1851,133 +1848,133 @@ export function drawEnd(
     if (winner === 'player1') {
       ctx.fillStyle = OB.purpleLight;
       ctx.font = 'bold 48px monospace';
-      ctx.fillText('PLAYER 1 WINS!', VW / 2, 160);
+      ctx.fillText('PLAYER 1 WINS!', VW / 2, 80);
       ctx.fillStyle = OB.purple;
       ctx.font = '20px monospace';
-      ctx.fillText('Purple Team Victory!', VW / 2, 200);
+      ctx.fillText('Purple Team Victory!', VW / 2, 115);
     } else if (winner === 'player2') {
       ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 48px monospace';
-      ctx.fillText('PLAYER 2 WINS!', VW / 2, 160);
+      ctx.fillText('PLAYER 2 WINS!', VW / 2, 80);
       ctx.fillStyle = OB.orange;
       ctx.font = '20px monospace';
-      ctx.fillText('Orange Team Victory!', VW / 2, 200);
+      ctx.fillText('Orange Team Victory!', VW / 2, 115);
     } else if (winner === 'tie') {
       ctx.fillStyle = OB.lavender;
       ctx.font = 'bold 48px monospace';
-      ctx.fillText("IT'S A TIE!", VW / 2, 160);
+      ctx.fillText("IT'S A TIE!", VW / 2, 80);
       ctx.fillStyle = OB.textSecondary;
       ctx.font = '20px monospace';
-      ctx.fillText('Both players matched!', VW / 2, 200);
+      ctx.fillText('Both players matched!', VW / 2, 115);
     } else {
       ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 48px monospace';
-      ctx.fillText("TIME'S UP!", VW / 2, 160);
+      ctx.fillText("TIME'S UP!", VW / 2, 80);
       ctx.fillStyle = OB.orange + '30';
-      ctx.fillText("TIME'S UP!", VW / 2 + 2, 162);
+      ctx.fillText("TIME'S UP!", VW / 2 + 2, 82);
     }
     
     // Score cards
     ctx.fillStyle = OB.bgCard;
     ctx.beginPath();
-    ctx.roundRect(VW / 2 - 200, 240, 160, 70, 10);
+    ctx.roundRect(VW / 2 - 200, 135, 160, 60, 10);
     ctx.fill();
     ctx.strokeStyle = OB.purple + '60';
     ctx.beginPath();
-    ctx.roundRect(VW / 2 - 200, 240, 160, 70, 10);
+    ctx.roundRect(VW / 2 - 200, 135, 160, 60, 10);
     ctx.stroke();
     
     ctx.fillStyle = OB.purpleLight;
     ctx.font = 'bold 13px monospace';
-    ctx.fillText('PLAYER 1', VW / 2 - 120, 265);
+    ctx.fillText('PLAYER 1', VW / 2 - 120, 158);
     ctx.font = 'bold 24px monospace';
-    ctx.fillText(`${p1Fixes} fixes`, VW / 2 - 120, 295);
+    ctx.fillText(`${p1Fixes} fixes`, VW / 2 - 120, 183);
     
     ctx.fillStyle = OB.bgCard;
     ctx.beginPath();
-    ctx.roundRect(VW / 2 + 40, 240, 160, 70, 10);
+    ctx.roundRect(VW / 2 + 40, 135, 160, 60, 10);
     ctx.fill();
     ctx.strokeStyle = OB.orange + '60';
     ctx.beginPath();
-    ctx.roundRect(VW / 2 + 40, 240, 160, 70, 10);
+    ctx.roundRect(VW / 2 + 40, 135, 160, 60, 10);
     ctx.stroke();
     
     ctx.fillStyle = OB.orangeLight;
     ctx.font = 'bold 13px monospace';
-    ctx.fillText('PLAYER 2', VW / 2 + 120, 265);
+    ctx.fillText('PLAYER 2', VW / 2 + 120, 158);
     ctx.font = 'bold 24px monospace';
-    ctx.fillText(`${p2Fixes} fixes`, VW / 2 + 120, 295);
+    ctx.fillText(`${p2Fixes} fixes`, VW / 2 + 120, 183);
     
     ctx.fillStyle = OB.textMuted;
     ctx.font = '14px monospace';
-    ctx.fillText(`Total issues: ${TOTAL_ISSUES}`, VW / 2, 345);
+    ctx.fillText(`Total issues: ${TOTAL_ISSUES}`, VW / 2, 220);
     
     // Multiplayer end branding
     ctx.fillStyle = OB.textSecondary;
     ctx.font = '11px monospace';
-    ctx.fillText('NHIs outnumber human identities 20-50x and growing 20% YoY', VW / 2, 380);
+    ctx.fillText('NHIs outnumber human identities 20-50x and growing 20% YoY', VW / 2, 245);
     ctx.fillStyle = OB.purpleLight;
     ctx.font = 'bold 11px monospace';
-    ctx.fillText('oasis.security  →  Govern agentic access at scale', VW / 2, 398);
+    ctx.fillText('oasis.security  →  Govern agentic access at scale', VW / 2, 262);
     
   } else {
     if (win) {
       ctx.fillStyle = OB.purpleLight;
       ctx.font = 'bold 44px monospace';
-      ctx.fillText('ALL NHIs SECURED!', VW / 2, 160);
+      ctx.fillText('ALL NHIs SECURED!', VW / 2, 80);
       ctx.fillStyle = OB.purple + '30';
-      ctx.fillText('ALL NHIs SECURED!', VW / 2 + 2, 162);
+      ctx.fillText('ALL NHIs SECURED!', VW / 2 + 2, 82);
       
       ctx.fillStyle = OB.purpleSoft;
       ctx.font = '16px monospace';
-      ctx.fillText('Oasis — Agentic Access Management', VW / 2, 195);
+      ctx.fillText('Oasis \u2014 Agentic Access Management', VW / 2, 115);
       
       ctx.fillStyle = OB.textPrimary;
       ctx.font = '20px monospace';
       const el = GAME_TIME - timer;
       const m = Math.floor(el / 60);
       const s = Math.floor(el % 60);
-      ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 240);
+      ctx.fillText(`Completed in ${m}:${s < 10 ? '0' : ''}${s}`, VW / 2, 155);
       ctx.fillStyle = OB.purpleSoft;
-      ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 270);
+      ctx.fillText(`All ${TOTAL_ISSUES} identity issues remediated`, VW / 2, 185);
       
       // Win message with Oasis branding
       ctx.fillStyle = OB.bgCard + 'dd';
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 230, 295, 460, 65, 8);
+      ctx.roundRect(VW / 2 - 230, 205, 460, 58, 8);
       ctx.fill();
       ctx.strokeStyle = OB.purple + '30';
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 230, 295, 460, 65, 8);
+      ctx.roundRect(VW / 2 - 230, 205, 460, 58, 8);
       ctx.stroke();
       
       ctx.fillStyle = OB.textSecondary;
       ctx.font = '12px monospace';
-      ctx.fillText('NHIs constitute 90%+ of the identity fabric.', VW / 2, 316);
-      ctx.fillText('You just governed them all. Oasis does it at cloud scale.', VW / 2, 334);
+      ctx.fillText('NHIs constitute 90%+ of the identity fabric.', VW / 2, 225);
+      ctx.fillText('You just governed them all. Oasis does it at cloud scale.', VW / 2, 241);
       ctx.fillStyle = OB.purpleLight;
       ctx.font = 'bold 11px monospace';
-      ctx.fillText('oasis.security  →  Request a Demo', VW / 2, 352);
+      ctx.fillText('oasis.security  \u2192  Request a Demo', VW / 2, 256);
     } else {
       // Title (use orange to stay in brand palette)
       ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 44px monospace';
-      ctx.fillText("TIME'S UP!", VW / 2, 160);
+      ctx.fillText("TIME'S UP!", VW / 2, 80);
       ctx.fillStyle = OB.orange + '35';
-      ctx.fillText("TIME'S UP!", VW / 2 + 2, 162);
+      ctx.fillText("TIME'S UP!", VW / 2 + 2, 82);
 
       // Score
       ctx.fillStyle = OB.textSecondary;
       ctx.font = '20px monospace';
-      ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 230);
+      ctx.fillText(`Remediated: ${fixed} / ${TOTAL_ISSUES}`, VW / 2, 135);
       ctx.fillStyle = OB.textPrimary;
-      ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 260);
+      ctx.fillText(`${TOTAL_ISSUES - fixed} identities still at risk`, VW / 2, 165);
       
-      // Lose message with Oasis branding (bigger + punchier)
-      const cardX = VW / 2 - 250;
-      const cardY = 285;
-      const cardW = 500;
-      const cardH = 92;
+      // Lose message with Oasis branding
+      const cardX = VW / 2 - 230;
+      const cardY = 190;
+      const cardW = 460;
+      const cardH = 75;
       ctx.fillStyle = OB.bgCard + 'e6';
       ctx.beginPath();
       ctx.roundRect(cardX, cardY, cardW, cardH, 10);
@@ -1991,7 +1988,7 @@ export function drawEnd(
 
       ctx.fillStyle = OB.orangeLight;
       ctx.font = 'bold 14px monospace';
-      ctx.fillText('Oasis takes you from 0 to 10', VW / 2, cardY + 22);
+      ctx.fillText('Oasis takes you from 0 to 10', VW / 2, cardY + 20);
 
       // Wrapped body copy
       const body =
@@ -2001,31 +1998,31 @@ export function drawEnd(
       const maxW = cardW - 34;
       const words = body.split(' ');
       let line = '';
-      let y = cardY + 40;
+      let y = cardY + 36;
       for (const w of words) {
         const test = line ? `${line} ${w}` : w;
         if (ctx.measureText(test).width > maxW) {
           ctx.fillText(line, VW / 2, y);
           line = w;
           y += 13;
-          if (y > cardY + 66) break; // keep it tight
+          if (y > cardY + 52) break;
         } else {
           line = test;
         }
       }
-      if (line && y <= cardY + 66) ctx.fillText(line, VW / 2, y);
+      if (line && y <= cardY + 52) ctx.fillText(line, VW / 2, y);
 
       // CTA line
       ctx.fillStyle = OB.purpleLight;
       ctx.font = 'bold 11px monospace';
-      ctx.fillText('oasis.security  →  Govern agentic access at scale', VW / 2, cardY + cardH - 12);
+      ctx.fillText('oasis.security  \u2192  Govern agentic access at scale', VW / 2, cardY + cardH - 10);
     }
   }
 
-  // Continue button (orange)
-  if (Math.sin(Date.now() * 0.004) > 0) {
+  // Continue button (orange) -- only show when not entering name
+  if (!isEnteringName && Math.sin(Date.now() * 0.004) > 0) {
     const btnW = 360, btnH = 40;
-    const btnX = VW / 2 - btnW / 2, btnY = 420;
+    const btnX = VW / 2 - btnW / 2, btnY = 555;
     ctx.fillStyle = OB.orange;
     ctx.beginPath();
     ctx.roundRect(btnX, btnY, btnW, btnH, 8);

@@ -894,21 +894,22 @@ export default function Game() {
       ctx.textAlign = 'left';
     }
 
-    // Dancer freeze message
+    // Dancer freeze message (offset below camel message to avoid stacking)
     if (dancerFreeze > 0) {
+      const dancerMsgY = camelBlockTimer > 0 ? 115 : 80;
       ctx.fillStyle = 'rgba(15,15,26,0.88)';
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 100, 80, 200, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 100, dancerMsgY, 200, 28, 6);
       ctx.fill();
       ctx.strokeStyle = 'rgba(176,48,96,0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 100, 80, 200, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 100, dancerMsgY, 200, 28, 6);
       ctx.stroke();
       ctx.fillStyle = '#ff69b4';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Mesmerized by the dancer!', viewWidth / 2, 99);
+      ctx.fillText('Mesmerized by the dancer!', viewWidth / 2, dancerMsgY + 19);
       ctx.textAlign = 'left';
     }
 
@@ -1036,7 +1037,8 @@ export default function Game() {
         state.gameMode,
         state.winner,
         state.player?.fixes || 0,
-        state.player2?.fixes || 0
+        state.player2?.fixes || 0,
+        state.enteringName
       );
       drawScoreboard(ctx, state.scores, state.playerName, state.enteringName, state.tick);
     }
