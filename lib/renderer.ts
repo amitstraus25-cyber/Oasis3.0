@@ -100,7 +100,7 @@ function getOasisGradient(tx: number, ty: number): string {
     g += 25;
     b += 35;
   }
-  
+
   return `rgb(${r + checker},${g + checker},${b + checker})`;
 }
 
@@ -229,30 +229,130 @@ export function drawTile(
       ctx.fill();
       break;
 
-    case T.COOLER:
+    case T.COOLER: {
       ctx.fillStyle = getOasisGradient(tx, ty);
       ctx.fillRect(sx, sy, TILE, TILE);
-      // Water cooler dispenser
-      ctx.fillStyle = '#e8e8e8';
-      ctx.fillRect(sx + 12, sy + 4, 16, 28);
-      ctx.fillStyle = '#d0d0d0';
-      ctx.fillRect(sx + 12, sy + 4, 16, 4);
-      // Water jug on top
-      ctx.fillStyle = OASIS.tealLight;
+      // Brass tray
+      ctx.fillStyle = '#8B6914';
       ctx.beginPath();
-      ctx.arc(sx + 20, sy + 8, 6, 0, Math.PI * 2);
+      ctx.ellipse(sx + 20, sy + 36, 16, 4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = OASIS.teal;
+      ctx.fillStyle = '#A67C00';
       ctx.beginPath();
-      ctx.arc(sx + 20, sy + 8, 4, 0, Math.PI * 2);
+      ctx.ellipse(sx + 20, sy + 35, 15, 3, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Dispenser tap
-      ctx.fillStyle = '#888';
-      ctx.fillRect(sx + 18, sy + 18, 4, 6);
-      // Base
-      ctx.fillStyle = '#aaa';
-      ctx.fillRect(sx + 10, sy + 32, 20, 4);
+      // Stove/burner base
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.ellipse(sx + 20, sy + 34, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#444';
+      ctx.fillRect(sx + 12, sy + 30, 16, 5);
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.ellipse(sx + 20, sy + 30, 8, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Animated flames under pot
+      const ft = Date.now() * 0.006;
+      const flames = [
+        { x: 15, w: 3, phase: 0 },
+        { x: 19, w: 4, phase: 1.2 },
+        { x: 24, w: 3, phase: 2.5 },
+      ];
+      for (const f of flames) {
+        const fh = 4 + Math.sin(ft + f.phase) * 2;
+        ctx.fillStyle = `rgba(255,${140 + Math.sin(ft + f.phase) * 40 | 0},0,0.85)`;
+        ctx.beginPath();
+        ctx.moveTo(sx + f.x, sy + 30);
+        ctx.lineTo(sx + f.x + f.w / 2, sy + 30 - fh);
+        ctx.lineTo(sx + f.x + f.w, sy + 30);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(255,220,60,0.6)`;
+        ctx.beginPath();
+        ctx.moveTo(sx + f.x + 1, sy + 30);
+        ctx.lineTo(sx + f.x + f.w / 2, sy + 30 - fh * 0.5);
+        ctx.lineTo(sx + f.x + f.w - 1, sy + 30);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Orange glow under pot
+      ctx.fillStyle = `rgba(255,100,0,${0.15 + Math.sin(ft) * 0.08})`;
+      ctx.beginPath();
+      ctx.ellipse(sx + 20, sy + 30, 9, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Cezve/finjan pot body (tapered)
+      ctx.fillStyle = '#B87333';
+      ctx.beginPath();
+      ctx.moveTo(sx + 14, sy + 30);
+      ctx.lineTo(sx + 12, sy + 16);
+      ctx.lineTo(sx + 16, sy + 10);
+      ctx.lineTo(sx + 24, sy + 10);
+      ctx.lineTo(sx + 28, sy + 16);
+      ctx.lineTo(sx + 26, sy + 30);
+      ctx.closePath();
+      ctx.fill();
+      // Pot highlight
+      ctx.fillStyle = '#CD7F32';
+      ctx.beginPath();
+      ctx.moveTo(sx + 16, sy + 28);
+      ctx.lineTo(sx + 14, sy + 18);
+      ctx.lineTo(sx + 17, sy + 12);
+      ctx.lineTo(sx + 19, sy + 12);
+      ctx.lineTo(sx + 17, sy + 18);
+      ctx.lineTo(sx + 18, sy + 28);
+      ctx.closePath();
+      ctx.fill();
+      // Rim
+      ctx.fillStyle = '#DAA520';
+      ctx.fillRect(sx + 11, sy + 9, 18, 2);
+      // Overflowing foam
+      const foamT = Date.now() * 0.004;
+      ctx.fillStyle = '#D2B48C';
+      ctx.beginPath();
+      ctx.arc(sx + 14 + Math.sin(foamT) * 1, sy + 9, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 20 + Math.sin(foamT + 1) * 1, sy + 8, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 26 + Math.sin(foamT + 2) * 1, sy + 9, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#E8D5B7';
+      ctx.beginPath();
+      ctx.arc(sx + 17, sy + 8, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 23, sy + 8, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Foam drip down the side
+      ctx.fillStyle = '#D2B48C';
+      ctx.fillRect(sx + 12 + (Math.sin(foamT * 0.7) > 0.3 ? 0 : 20), sy + 10, 2, 4 + Math.sin(foamT) * 2);
+      // Long handle
+      ctx.fillStyle = '#5C3317';
+      ctx.fillRect(sx + 26, sy + 12, 10, 3);
+      ctx.fillRect(sx + 34, sy + 11, 4, 5);
+      // Steam wisps
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      const st = Date.now() * 0.003;
+      ctx.beginPath();
+      ctx.arc(sx + 17 + Math.sin(st) * 2, sy + 4 + Math.sin(st * 1.3) * 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 23 + Math.sin(st + 1) * 2, sy + 2 + Math.sin(st * 1.1 + 1) * 2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + 20 + Math.sin(st + 2) * 1.5, sy + 0 + Math.sin(st * 0.9 + 2) * 1.5, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Tiny finjan cups on tray
+      ctx.fillStyle = '#F0E68C';
+      ctx.fillRect(sx + 5, sy + 33, 4, 4);
+      ctx.fillRect(sx + 31, sy + 33, 4, 4);
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(sx + 6, sy + 34, 2, 2);
+      ctx.fillRect(sx + 32, sy + 34, 2, 2);
       break;
+    }
 
     case T.PALM:
       // Palm tree on floor
@@ -368,6 +468,58 @@ export function drawTile(
       ctx.fillRect(sx + TILE - 2, sy, 2, TILE);
       ctx.fillRect(sx, sy + TILE - 2, TILE, 2);
       break;
+
+    case T.CARPET: {
+      ctx.fillStyle = getOasisGradient(tx, ty);
+      ctx.fillRect(sx, sy, TILE, TILE);
+      // Floating bob offset
+      const carpetBob = Math.sin(Date.now() * 0.003 + tx + ty) * 3;
+      const cy = sy + carpetBob;
+      // Shadow on ground
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath();
+      ctx.ellipse(sx + 20, sy + 34, 14, 4 - carpetBob * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Ornate rug base
+      ctx.fillStyle = '#8B1A1A';
+      ctx.fillRect(sx + 3, cy + 3, TILE - 6, TILE - 10);
+      // Gold border
+      ctx.fillStyle = '#DAA520';
+      ctx.fillRect(sx + 3, cy + 3, TILE - 6, 2);
+      ctx.fillRect(sx + 3, cy + TILE - 9, TILE - 6, 2);
+      ctx.fillRect(sx + 3, cy + 3, 2, TILE - 10);
+      ctx.fillRect(sx + TILE - 5, cy + 3, 2, TILE - 10);
+      // Inner border
+      ctx.fillStyle = '#CD853F';
+      ctx.fillRect(sx + 7, cy + 7, TILE - 14, TILE - 18);
+      // Center pattern - teal diamond
+      ctx.fillStyle = OASIS.teal;
+      ctx.beginPath();
+      ctx.moveTo(sx + 20, cy + 8);
+      ctx.lineTo(sx + 30, cy + 17);
+      ctx.lineTo(sx + 20, cy + 26);
+      ctx.lineTo(sx + 10, cy + 17);
+      ctx.closePath();
+      ctx.fill();
+      // Corner accents
+      ctx.fillStyle = '#DAA520';
+      ctx.fillRect(sx + 6, cy + 6, 3, 3);
+      ctx.fillRect(sx + TILE - 9, cy + 6, 3, 3);
+      ctx.fillRect(sx + 6, cy + TILE - 13, 3, 3);
+      ctx.fillRect(sx + TILE - 9, cy + TILE - 13, 3, 3);
+      // Tassels hanging from front and back edges
+      ctx.fillStyle = '#DAA520';
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(sx + 10 + i * 8, cy + TILE - 9, 2, 4);
+        ctx.fillRect(sx + 10 + i * 8, cy + 1, 2, 3);
+      }
+      // Shimmer animation
+      const carpetTime = Date.now() * 0.002;
+      const shimmer = Math.sin(carpetTime + tx * 3 + ty * 5) * 0.12 + 0.08;
+      ctx.fillStyle = `rgba(218,165,32,${shimmer})`;
+      ctx.fillRect(sx + 3, cy + 3, TILE - 6, TILE - 10);
+      break;
+    }
   }
 }
 
@@ -1183,33 +1335,12 @@ export function drawMinimap(
     }
   }
 
-  // Draw Oasis logo on minimap (17x17 pixel art)
-  const LOGO: number[][] = [
-    [0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
-    [0,0,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0],
-    [0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
-    [0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0],
-    [1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
-    [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,2,2,0,0,0,2,2,2,0,0,0,0,1,1,1],
-    [1,1,1,2,2,2,2,2,0,2,2,2,0,0,0,1,0],
-    [0,1,1,0,0,2,2,0,0,0,2,2,2,0,1,1,0],
-    [0,1,1,1,0,0,0,0,0,0,0,2,2,1,1,1,0],
-    [0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0],
-    [0,0,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
-    [0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0],
-  ];
-  const lpw = mw / 17, lph = mh / 17;
-  for (let ly = 0; ly < 17; ly++) {
-    for (let lx = 0; lx < 17; lx++) {
-      const v = LOGO[ly][lx];
-      if (v > 0) {
-        ctx.fillStyle = v === 2 ? 'rgba(167,139,250,0.45)' : 'rgba(124,92,252,0.35)';
-        ctx.fillRect(mx + lx * lpw, my + ly * lph, Math.ceil(lpw), Math.ceil(lph));
+  // Show OASIS floor branding subtly on minimap
+  ctx.fillStyle = 'rgba(124,92,252,0.15)';
+  for (let ty = 0; ty < MAP_H; ty++) {
+    for (let tx = 0; tx < MAP_W; tx++) {
+      if (isOasisBrandTile(tx, ty)) {
+        ctx.fillRect(mx + tx * sx, my + ty * sy, Math.ceil(sx), Math.ceil(sy));
       }
     }
   }
@@ -1326,7 +1457,8 @@ export function drawHUD(
   issues: Issue[],
   player: Player,
   nearbyIssue: Issue | null,
-  tick: number
+  tick: number,
+  musicMuted: boolean = false
 ): void {
   // Top left - Remediated count
   ctx.fillStyle = 'rgba(15,15,26,0.88)';
@@ -1412,6 +1544,26 @@ export function drawHUD(
     ctx.fillStyle = `rgba(124,92,252,${flash / 35})`;
     ctx.fillRect(0, 0, VW, VH);
   }
+
+  // Music toggle button (to the left of the timer)
+  const muteX = VW - timerBoxW - 46;
+  const muteY = 10;
+  const muteW = 30;
+  const muteH = 30;
+  ctx.fillStyle = 'rgba(15,15,26,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(muteX, muteY, muteW, muteH, 6);
+  ctx.fill();
+  ctx.strokeStyle = musicMuted ? 'rgba(255,85,85,0.4)' : 'rgba(124,92,252,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(muteX, muteY, muteW, muteH, 6);
+  ctx.stroke();
+  ctx.fillStyle = musicMuted ? '#ff5555' : '#a78bfa';
+  ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(musicMuted ? '\u266A\u0338' : '\u266A', muteX + muteW / 2, muteY + 21);
+  ctx.textAlign = 'left';
 
   // Minimap
   drawMinimap(ctx, map, issues, player);
@@ -1595,7 +1747,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
 }
 
 // Draw mode select screen
-export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): void {
+export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, selectedMode: GameMode = 'single'): void {
   ctx.fillStyle = OB.bg;
   ctx.fillRect(0, 0, VW, VH);
 
@@ -1618,14 +1770,15 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): voi
 
   const pulse = Math.sin(tick * 0.08) * 0.3 + 0.7;
   const camera = { x: 0, y: 0 };
+  const isSingle = selectedMode === 'single';
   
   // Single Player card
-  ctx.fillStyle = OB.bgCard;
+  ctx.fillStyle = isSingle ? OB.bgCardLight : OB.bgCard;
   ctx.beginPath();
   ctx.roundRect(VW / 2 - 190, 145, 170, 200, 12);
   ctx.fill();
-  ctx.strokeStyle = OB.purple + '60';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = isSingle ? `rgba(249,115,22,${pulse})` : OB.purple + '30';
+  ctx.lineWidth = isSingle ? 3 : 1;
   ctx.beginPath();
   ctx.roundRect(VW / 2 - 190, 145, 170, 200, 12);
   ctx.stroke();
@@ -1638,26 +1791,27 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): voi
     frame: Math.floor(Date.now() / 300) % 2
   });
   
-  ctx.fillStyle = OB.textPrimary;
+  ctx.fillStyle = isSingle ? OB.textPrimary : OB.textMuted;
   ctx.font = 'bold 18px monospace';
   ctx.fillText('1 PLAYER', VW / 2 - 105, 265);
   
-  // Orange CTA button
-  ctx.fillStyle = `rgba(249,115,22,${pulse})`;
-  ctx.beginPath();
-  ctx.roundRect(VW / 2 - 165, 285, 120, 34, 6);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText('Press 1', VW / 2 - 105, 308);
+  if (isSingle) {
+    ctx.fillStyle = OB.orange;
+    ctx.beginPath();
+    ctx.roundRect(VW / 2 - 155, 285, 100, 30, 6);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('SELECTED', VW / 2 - 105, 305);
+  }
 
   // Multiplayer card
-  ctx.fillStyle = OB.bgCard;
+  ctx.fillStyle = !isSingle ? OB.bgCardLight : OB.bgCard;
   ctx.beginPath();
   ctx.roundRect(VW / 2 + 20, 145, 170, 200, 12);
   ctx.fill();
-  ctx.strokeStyle = OB.orangeLight + '60';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = !isSingle ? `rgba(249,115,22,${pulse})` : OB.purple + '30';
+  ctx.lineWidth = !isSingle ? 3 : 1;
   ctx.beginPath();
   ctx.roundRect(VW / 2 + 20, 145, 170, 200, 12);
   ctx.stroke();
@@ -1677,41 +1831,48 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number): voi
     frame: Math.floor(Date.now() / 300 + 1) % 2
   });
   
-  ctx.fillStyle = OB.textPrimary;
+  ctx.fillStyle = !isSingle ? OB.textPrimary : OB.textMuted;
   ctx.font = 'bold 18px monospace';
   ctx.fillText('2 PLAYERS', VW / 2 + 105, 265);
   
-  ctx.fillStyle = `rgba(249,115,22,${pulse})`;
-  ctx.beginPath();
-  ctx.roundRect(VW / 2 + 45, 285, 120, 34, 6);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 16px monospace';
-  ctx.fillText('Press 2', VW / 2 + 105, 308);
+  if (!isSingle) {
+    ctx.fillStyle = OB.orange;
+    ctx.beginPath();
+    ctx.roundRect(VW / 2 + 55, 285, 100, 30, 6);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('SELECTED', VW / 2 + 105, 305);
+  }
+
+  // Navigation hint
+  ctx.fillStyle = OB.textSecondary;
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('\u2190  A / D  \u2192    to switch   |   ENTER to start', VW / 2, 365);
 
   // Controls card
   ctx.fillStyle = OB.bgCard + 'aa';
   ctx.beginPath();
-  ctx.roundRect(VW / 2 - 230, 375, 460, 100, 10);
+  ctx.roundRect(VW / 2 - 230, 390, 460, 100, 10);
   ctx.fill();
   ctx.strokeStyle = OB.purple + '25';
   ctx.beginPath();
-  ctx.roundRect(VW / 2 - 230, 375, 460, 100, 10);
+  ctx.roundRect(VW / 2 - 230, 390, 460, 100, 10);
   ctx.stroke();
 
   ctx.fillStyle = OB.textMuted;
   ctx.font = '13px monospace';
-  ctx.fillText('─── CONTROLS ───', VW / 2, 398);
+  ctx.fillText('\u2500\u2500\u2500 CONTROLS \u2500\u2500\u2500', VW / 2, 413);
   
   ctx.fillStyle = OB.purpleLight;
   ctx.font = '12px monospace';
-  ctx.fillText('PLAYER 1: WASD to move, E/SPACE to fix', VW / 2, 425);
+  ctx.fillText('1P: WASD / Arrows to move, E / SPACE / ENTER to fix', VW / 2, 438);
   ctx.fillStyle = OB.orangeLight;
-  ctx.fillText('PLAYER 2: Arrows to move, ENTER/SHIFT to fix', VW / 2, 448);
+  ctx.fillText('2P: P1=WASD+E/SPACE  |  P2=Arrows+ENTER/SHIFT', VW / 2, 458);
   
   ctx.fillStyle = OB.textSecondary;
   ctx.font = '11px monospace';
-  ctx.fillText('First to fix all issues wins! (1 minute timer)', VW / 2, 468);
+  ctx.fillText('Fix all issues before time runs out! (1:30 timer)', VW / 2, 480);
 
   // Back hint
   ctx.fillStyle = OB.textMuted;

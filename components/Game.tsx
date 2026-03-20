@@ -5,12 +5,13 @@ import {
   TILE, MAP_W, MAP_H, VW, VH, T, WALKABLE, SPLIT_VW,
   PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES, OASIS,
   DECOY_FREEZE_FRAMES, DECOY_MESSAGES, DANCER_FREEZE_FRAMES,
+  CARPET_COOLDOWN,
 } from '@/lib/constants';
 import type {
   TileType, Player, NPC, Issue, Cubicle, Particle, Camera, GameScreen, Camel, BellyDancer, GameMode, Winner,
 } from '@/lib/types';
 import { generateMap, createPlayer, createNPCs, createIssues, createCamels, createBellyDancers } from '@/lib/mapGenerator';
-import { initAudio, sfxFix, sfxWin, sfxLose } from '@/lib/audio';
+import { initAudio, sfxFix, sfxWin, sfxLose, sfxTeleport, startMusic, stopMusic, toggleMusic } from '@/lib/audio';
 import {
   drawTile, drawCubicleLabels, drawPerson, drawIssue, drawCamel, drawBellyDancer,
   drawHUD, drawParticles, drawTitle, drawEnd, drawModeSelect, drawMinimap, drawScoreboard,
@@ -53,6 +54,7 @@ export default function Game() {
     coffeeBoost: number;
     coffeeBoost2: number;
     coolerCooldowns: Map<string, number>;
+    carpetCooldowns: Map<string, number>;
     decoyFreeze: number;
     decoyFreeze2: number;
     decoyMessage: string;
@@ -62,6 +64,8 @@ export default function Game() {
     playerName: string;
     enteringName: boolean;
     scoreSubmitted: boolean;
+    modeSelectChoice: GameMode;
+    musicMuted: boolean;
   }>({
     screen: 'title',
     gameMode: 'single',
@@ -95,6 +99,7 @@ export default function Game() {
     coffeeBoost: 0,
     coffeeBoost2: 0,
     coolerCooldowns: new Map(),
+    carpetCooldowns: new Map(),
     decoyFreeze: 0,
     decoyFreeze2: 0,
     decoyMessage: '',
@@ -104,6 +109,8 @@ export default function Game() {
     playerName: '',
     enteringName: false,
     scoreSubmitted: false,
+    modeSelectChoice: 'single',
+    musicMuted: false,
   });
 
   const startGame = useCallback((mode: GameMode) => {
@@ -125,6 +132,7 @@ export default function Game() {
     state.coffeeBoost = 0;
     state.coffeeBoost2 = 0;
     state.coolerCooldowns = new Map();
+    state.carpetCooldowns = new Map();
     state.decoyFreeze = 0;
     state.decoyFreeze2 = 0;
     state.decoyMessage = '';
@@ -144,6 +152,8 @@ export default function Game() {
     const { issues, deskMap } = createIssues(cubicles, state.npcs);
     state.issues = issues;
     state.deskMap = deskMap;
+
+    startMusic();
   }, []);
 
   const canWalk = useCallback((px: number, py: number): boolean => {
@@ -196,12 +206,77 @@ export default function Game() {
     }
   }, []);
 
+  const checkCarpetTeleport = useCallback((player: Player, playerNum: 1 | 2) => {
+    const state = gameStateRef.current;
+
+    const ptx = Math.floor((player.x + TILE / 2) / TILE);
+    const pty = Math.floor((player.y + TILE / 2) / TILE);
+
+    if (ptx < 0 || pty < 0 || ptx >= MAP_W || pty >= MAP_H) return;
+    if (state.map[pty][ptx] !== T.CARPET) return;
+
+    const carpetKey = `${ptx},${pty}`;
+    const cooldown = state.carpetCooldowns.get(carpetKey) || 0;
+    if (cooldown > 0) return;
+
+    // Find nearest unfixed non-decoy issue
+    let best: Issue | null = null;
+    let bestDist = Infinity;
+    for (const issue of state.issues) {
+      if (issue.fixed || issue.decoy) continue;
+      const dx = issue.x - player.x;
+      const dy = issue.y - player.y;
+      const dist = dx * dx + dy * dy;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = issue;
+      }
+    }
+    if (!best) return;
+
+    // Spawn departure particles
+    for (let i = 0; i < 14; i++) {
+      state.particles.push({
+        x: player.x + TILE / 2,
+        y: player.y + TILE / 2,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        life: 25 + Math.random() * 15,
+        maxLife: 40,
+        color: ['#7c5cfc', '#5EEAD4', '#DAA520', '#a78bfa'][Math.floor(Math.random() * 4)],
+        size: 2 + Math.random() * 3,
+      });
+    }
+
+    // Teleport
+    player.x = best.x;
+    player.y = best.y;
+
+    // Spawn arrival particles
+    for (let i = 0; i < 14; i++) {
+      state.particles.push({
+        x: best.x + TILE / 2,
+        y: best.y + TILE / 2,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        life: 25 + Math.random() * 15,
+        maxLife: 40,
+        color: ['#7c5cfc', '#5EEAD4', '#DAA520', '#a78bfa'][Math.floor(Math.random() * 4)],
+        size: 2 + Math.random() * 3,
+      });
+    }
+
+    state.carpetCooldowns.set(carpetKey, CARPET_COOLDOWN);
+    sfxTeleport();
+  }, []);
+
   const updatePlayerGeneric = useCallback((
     player: Player,
     upKey: string, downKey: string, leftKey: string, rightKey: string,
     camelBlockTimer: number,
     setBlockTimer: (val: number) => void,
-    isBoosted: boolean
+    isBoosted: boolean,
+    altUp?: string, altDown?: string, altLeft?: string, altRight?: string
   ): number => {
     const state = gameStateRef.current;
     
@@ -214,15 +289,15 @@ export default function Game() {
     for (const camel of state.camels) {
       const dist = Math.abs(player.x - camel.x) + Math.abs(player.y - camel.y);
       if (dist < TILE * 0.8) {
-        return 180;
+        return 300;
       }
     }
 
     let dx = 0, dy = 0;
-    if (state.keys[upKey]) dy = -1;
-    if (state.keys[downKey]) dy = 1;
-    if (state.keys[leftKey]) dx = -1;
-    if (state.keys[rightKey]) dx = 1;
+    if (state.keys[upKey] || (altUp && state.keys[altUp])) dy = -1;
+    if (state.keys[downKey] || (altDown && state.keys[altDown])) dy = 1;
+    if (state.keys[leftKey] || (altLeft && state.keys[altLeft])) dx = -1;
+    if (state.keys[rightKey] || (altRight && state.keys[altRight])) dx = 1;
 
     player.moving = dx !== 0 || dy !== 0;
 
@@ -295,13 +370,19 @@ export default function Game() {
     }
 
     checkCoffeePickup(state.player, 1);
+    checkCarpetTeleport(state.player, 1);
 
+    const singleMode = state.gameMode === 'single';
     state.camelBlockTimer = updatePlayerGeneric(
       state.player,
       'KeyW', 'KeyS', 'KeyA', 'KeyD',
       state.camelBlockTimer,
       (val) => { state.camelBlockTimer = val; },
-      state.coffeeBoost > 0
+      state.coffeeBoost > 0,
+      singleMode ? 'ArrowUp' : undefined,
+      singleMode ? 'ArrowDown' : undefined,
+      singleMode ? 'ArrowLeft' : undefined,
+      singleMode ? 'ArrowRight' : undefined
     );
 
     // Spawn speed trail particles when boosted and moving
@@ -316,7 +397,7 @@ export default function Game() {
         size: 2 + Math.random() * 2,
       });
     }
-  }, [updatePlayerGeneric, checkCoffeePickup]);
+  }, [updatePlayerGeneric, checkCoffeePickup, checkCarpetTeleport]);
 
   const updatePlayer2 = useCallback(() => {
     const state = gameStateRef.current;
@@ -337,6 +418,7 @@ export default function Game() {
     }
 
     checkCoffeePickup(state.player2, 2);
+    checkCarpetTeleport(state.player2, 2);
 
     state.camelBlockTimer2 = updatePlayerGeneric(
       state.player2,
@@ -357,7 +439,7 @@ export default function Game() {
         size: 2 + Math.random() * 2,
       });
     }
-  }, [updatePlayerGeneric, checkCoffeePickup]);
+  }, [updatePlayerGeneric, checkCoffeePickup, checkCarpetTeleport]);
 
   const updateCameraForPlayer = useCallback((player: Player, camera: Camera, viewWidth: number) => {
     camera.x = player.x + TILE / 2 - viewWidth / 2;
@@ -626,6 +708,7 @@ export default function Game() {
         state.enteringName = true;
         state.playerName = '';
         state.scoreSubmitted = false;
+        stopMusic();
         sfxWin();
         fetchScores().then(s => { state.scores = s; });
       }
@@ -635,6 +718,7 @@ export default function Game() {
         state.enteringName = true;
         state.playerName = '';
         state.scoreSubmitted = false;
+        stopMusic();
         sfxWin();
         fetchScores().then(s => { state.scores = s; });
       }
@@ -664,6 +748,7 @@ export default function Game() {
       }
       
       state.screen = 'lose';
+      stopMusic();
       sfxLose();
       fetchScores().then(s => { state.scores = s; });
       return;
@@ -684,6 +769,12 @@ export default function Game() {
     state.coolerCooldowns.forEach((val, key) => {
       if (val > 1) state.coolerCooldowns.set(key, val - 1);
       else state.coolerCooldowns.delete(key);
+    });
+
+    // Tick carpet cooldowns
+    state.carpetCooldowns.forEach((val, key) => {
+      if (val > 1) state.carpetCooldowns.set(key, val - 1);
+      else state.carpetCooldowns.delete(key);
     });
 
     updatePlayer();
@@ -775,19 +866,20 @@ export default function Game() {
 
     // Show "Playing with camel!" message if blocked
     if (camelBlockTimer > 0) {
+      const camelSec = Math.ceil(camelBlockTimer / 60);
       ctx.fillStyle = 'rgba(15,15,26,0.85)';
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 85, 80, 170, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 105, 80, 210, 28, 6);
       ctx.fill();
       ctx.strokeStyle = 'rgba(249,115,22,0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 85, 80, 170, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 105, 80, 210, 28, 6);
       ctx.stroke();
       ctx.fillStyle = '#fb923c';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Playing with camel!', viewWidth / 2, 99);
+      ctx.fillText(`Playing with camel! (${camelSec}s)`, viewWidth / 2, 99);
       ctx.textAlign = 'left';
     }
 
@@ -837,10 +929,11 @@ export default function Game() {
       const bx = pgx - boostBarWidth / 2;
       const by = player.y - camera.y - 8;
       
+      const boostSec = Math.ceil(coffeeBoost / 60);
       ctx.fillStyle = '#fb923c';
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('BOOST!', pgx, by - 4);
+      ctx.fillText(`BOOST! (${boostSec}s)`, pgx, by - 4);
       ctx.textAlign = 'left';
       
       ctx.fillStyle = 'rgba(15,15,26,0.6)';
@@ -869,10 +962,11 @@ export default function Game() {
       ctx.roundRect(msgX, msgY, msgWidth, 60, 8);
       ctx.stroke();
       
+      const decoySec = Math.ceil(decoyFreeze / 60);
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 13px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('NOISY NHI!', viewWidth / 2, msgY + 18);
+      ctx.fillText(`NOISY NHI! (${decoySec}s)`, viewWidth / 2, msgY + 18);
       
       ctx.fillStyle = '#e8e5f0';
       ctx.font = '10px monospace';
@@ -896,20 +990,21 @@ export default function Game() {
 
     // Dancer freeze message (offset below camel message to avoid stacking)
     if (dancerFreeze > 0) {
+      const dancerSec = Math.ceil(dancerFreeze / 60);
       const dancerMsgY = camelBlockTimer > 0 ? 115 : 80;
       ctx.fillStyle = 'rgba(15,15,26,0.88)';
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 100, dancerMsgY, 200, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 120, dancerMsgY, 240, 28, 6);
       ctx.fill();
       ctx.strokeStyle = 'rgba(176,48,96,0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(viewWidth / 2 - 100, dancerMsgY, 200, 28, 6);
+      ctx.roundRect(viewWidth / 2 - 120, dancerMsgY, 240, 28, 6);
       ctx.stroke();
       ctx.fillStyle = '#ff69b4';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Mesmerized by the dancer!', viewWidth / 2, dancerMsgY + 19);
+      ctx.fillText(`Mesmerized by the dancer! (${dancerSec}s)`, viewWidth / 2, dancerMsgY + 19);
       ctx.textAlign = 'left';
     }
 
@@ -929,7 +1024,7 @@ export default function Game() {
     }
 
     if (state.screen === 'modeSelect') {
-      drawModeSelect(ctx, state.tick);
+      drawModeSelect(ctx, state.tick, state.modeSelectChoice);
       return;
     }
 
@@ -1023,7 +1118,8 @@ export default function Game() {
         state.issues,
         state.player,
         state.nearbyIssue,
-        state.tick
+        state.tick,
+        state.musicMuted
       );
     }
 
@@ -1088,15 +1184,15 @@ export default function Game() {
         state.screen = 'modeSelect';
       }
 
-      // Mode select -> start game
+      // Mode select -> toggle + confirm
       if (state.screen === 'modeSelect') {
-        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+        if (e.code === 'KeyA' || e.code === 'KeyD' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
           e.preventDefault();
-          startGame('single');
+          state.modeSelectChoice = state.modeSelectChoice === 'single' ? 'multi' : 'single';
         }
-        if (e.code === 'Digit2' || e.code === 'Numpad2') {
+        if (e.code === 'Enter' || e.code === 'Space') {
           e.preventDefault();
-          startGame('multi');
+          startGame(state.modeSelectChoice);
         }
         if (e.code === 'Escape') {
           e.preventDefault();
@@ -1130,8 +1226,8 @@ export default function Game() {
         }
       }
 
-      // Player 1 fix: E or Space
-      if (state.screen === 'playing' && (e.code === 'Space' || e.code === 'KeyE')) {
+      // Player 1 fix: E, Space, or Enter (Enter only in single player)
+      if (state.screen === 'playing' && (e.code === 'Space' || e.code === 'KeyE' || (e.code === 'Enter' && state.gameMode === 'single'))) {
         e.preventDefault();
         tryFixForPlayer(1);
       }
@@ -1141,18 +1237,42 @@ export default function Game() {
         e.preventDefault();
         tryFixForPlayer(2);
       }
+
+      // Music toggle
+      if (state.screen === 'playing' && e.code === 'KeyM') {
+        state.musicMuted = toggleMusic();
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       gameStateRef.current.keys[e.code] = false;
     };
 
+    const handleClick = (e: MouseEvent) => {
+      const state = gameStateRef.current;
+      if (state.screen !== 'playing') return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = VW / rect.width;
+      const scaleY = VH / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      const muteX = VW - 120 - 46;
+      const muteY = 10;
+      if (cx >= muteX && cx <= muteX + 30 && cy >= muteY && cy <= muteY + 30) {
+        state.musicMuted = toggleMusic();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('click', handleClick);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('click', handleClick);
     };
   }, [startGame, tryFixForPlayer]);
 

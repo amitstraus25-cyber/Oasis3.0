@@ -8,7 +8,7 @@ export const VH = 680;
 // Gameplay
 export const PLAYER_SPEED = 3.8;
 export const FIX_RANGE = 72;
-export const GAME_TIME = 60; // 1 minute
+export const GAME_TIME = 90; // 1:30
 export const TOTAL_ISSUES = 9;
 
 // Split-screen dimensions
@@ -25,9 +25,12 @@ export const T = {
   PALM: 6,
   CACTUS: 7,
   WATER: 8,
+  CARPET: 9,
 } as const;
 
-export const WALKABLE = new Set<number>([T.FLOOR]);
+export const WALKABLE = new Set<number>([T.FLOOR, T.CARPET]);
+
+export const CARPET_COOLDOWN = 900; // ~15s cooldown per carpet
 
 // Colors - Oasis brand style
 export const COL = {
@@ -119,7 +122,7 @@ export const ISSUE_TYPES = [
 
 // Noisy NHI decoy types - waste the player's time
 export const DECOY_COUNT = 3;
-export const DECOY_FREEZE_FRAMES = 180; // ~3 seconds
+export const DECOY_FREEZE_FRAMES = 300; // 5 seconds
 
 export const DECOY_MESSAGES = [
   "Hey! I'm not broken, just misconfigured. Let me explain my entire auth flow...",
@@ -132,4 +135,4 @@ export const DECOY_MESSAGES = [
 
 // Belly dancer trap NPC
 export const DANCER_COUNT = 2;
-export const DANCER_FREEZE_FRAMES = 240; // ~4 seconds
+export const DANCER_FREEZE_FRAMES = 300; // 5 seconds

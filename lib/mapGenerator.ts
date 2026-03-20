@@ -144,6 +144,16 @@ export function generateMap(): { map: TileType[][], cubicles: Cubicle[] } {
     }
   }
 
+  // Magic carpet teleport pad (far right side of the map)
+  const carpetSpots: [number, number][] = [
+    [MAP_W - 5, hallY + 1],
+  ];
+  for (const [cx, cy] of carpetSpots) {
+    if (cy > 0 && cy < MAP_H - 1 && cx > 0 && cx < MAP_W - 1 && map[cy][cx] === T.FLOOR) {
+      map[cy][cx] = T.CARPET as TileType;
+    }
+  }
+
   return { map, cubicles };
 }
 
