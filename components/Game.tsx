@@ -1495,7 +1495,7 @@ export default function Game({ isMobile = false }: GameProps) {
             className="fix-button"
             onTouchStart={handleFixTap}
           >
-            FIX
+            &#x1F527; FIX
           </div>
         </div>
       )}
