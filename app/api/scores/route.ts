@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 
 interface ScoreEntry {
   name: string;
@@ -8,12 +9,15 @@ interface ScoreEntry {
 }
 
 const MAX_SCORES = 5;
-
-// In-memory store (resets on cold start — suitable for demo/prototype)
-let scores: ScoreEntry[] = [];
+const KV_KEY = 'nhi-fixer-scores';
 
 export async function GET() {
-  return NextResponse.json(scores.slice(0, MAX_SCORES));
+  try {
+    const scores = await kv.get<ScoreEntry[]>(KV_KEY) || [];
+    return NextResponse.json(scores.slice(0, MAX_SCORES));
+  } catch {
+    return NextResponse.json([]);
+  }
 }
 
 export async function POST(request: Request) {
@@ -32,12 +36,13 @@ export async function POST(request: Request) {
       date: new Date().toISOString().split('T')[0],
     };
 
+    const scores = await kv.get<ScoreEntry[]>(KV_KEY) || [];
     scores.push(entry);
-    // Sort by fastest time (lowest first), then most fixes
     scores.sort((a, b) => a.time - b.time || b.fixes - a.fixes);
-    scores = scores.slice(0, MAX_SCORES);
+    const top = scores.slice(0, MAX_SCORES);
+    await kv.set(KV_KEY, top);
 
-    return NextResponse.json({ success: true, scores: scores.slice(0, MAX_SCORES) });
+    return NextResponse.json({ success: true, scores: top });
   } catch {
     return NextResponse.json({ error: 'Failed to save score' }, { status: 500 });
   }

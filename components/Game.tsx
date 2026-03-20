@@ -19,8 +19,13 @@ import {
 import { fetchScores, submitScore } from '@/lib/scoreboard';
 import type { ScoreEntry } from '@/lib/types';
 
-export default function Game() {
+interface GameProps {
+  isMobile?: boolean;
+}
+
+export default function Game({ isMobile = false }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const joystickRef = useRef<{ active: boolean; dx: number; dy: number }>({ active: false, dx: 0, dy: 0 });
   const gameStateRef = useRef<{
     screen: GameScreen;
     gameMode: GameMode;
@@ -1024,7 +1029,7 @@ export default function Game() {
     }
 
     if (state.screen === 'modeSelect') {
-      drawModeSelect(ctx, state.tick, state.modeSelectChoice);
+      drawModeSelect(ctx, state.tick, state.modeSelectChoice, isMobile);
       return;
     }
 
@@ -1187,7 +1192,7 @@ export default function Game() {
 
       // Mode select -> toggle + confirm
       if (state.screen === 'modeSelect') {
-        if (e.code === 'KeyA' || e.code === 'KeyD' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        if (!isMobile && (e.code === 'KeyA' || e.code === 'KeyD' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
           e.preventDefault();
           state.modeSelectChoice = state.modeSelectChoice === 'single' ? 'multi' : 'single';
         }
@@ -1276,6 +1281,111 @@ export default function Game() {
       window.removeEventListener('click', handleClick);
     };
   }, [startGame, tryFixForPlayer]);
+
+  // Mobile: sync joystick into key state each frame
+  useEffect(() => {
+    if (!isMobile) return;
+    let raf: number;
+    const sync = () => {
+      const state = gameStateRef.current;
+      const j = joystickRef.current;
+      state.keys['KeyW'] = j.active && j.dy < -0.3;
+      state.keys['KeyS'] = j.active && j.dy > 0.3;
+      state.keys['KeyA'] = j.active && j.dx < -0.3;
+      state.keys['KeyD'] = j.active && j.dx > 0.3;
+      raf = requestAnimationFrame(sync);
+    };
+    raf = requestAnimationFrame(sync);
+    return () => cancelAnimationFrame(raf);
+  }, [isMobile]);
+
+  // Mobile: handle canvas tap for title/modeSelect screens
+  const handleCanvasTap = useCallback(() => {
+    const state = gameStateRef.current;
+    if (state.screen === 'title') {
+      initAudio();
+      state.screen = 'modeSelect';
+    } else if (state.screen === 'modeSelect') {
+      startGame(isMobile ? 'single' : state.modeSelectChoice);
+    } else if (state.screen === 'win' || state.screen === 'lose') {
+      if (state.enteringName) {
+        state.enteringName = false;
+      } else {
+        state.screen = 'title';
+        state.camera = { x: 0, y: 0 };
+        state.camera2 = { x: 0, y: 0 };
+      }
+    }
+  }, [startGame, isMobile]);
+
+  // Joystick touch handlers
+  const handleJoystickTouch = useCallback((e: React.TouchEvent, isEnd = false) => {
+    e.preventDefault();
+    const j = joystickRef.current;
+    if (isEnd) {
+      j.active = false;
+      j.dx = 0;
+      j.dy = 0;
+      return;
+    }
+    const touch = e.touches[0];
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const dx = (touch.clientX - rect.left - cx) / cx;
+    const dy = (touch.clientY - rect.top - cy) / cy;
+    j.active = true;
+    j.dx = Math.max(-1, Math.min(1, dx));
+    j.dy = Math.max(-1, Math.min(1, dy));
+  }, []);
+
+  const handleFixTap = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    const state = gameStateRef.current;
+    if (state.screen === 'playing') {
+      tryFixForPlayer(1);
+    }
+  }, [tryFixForPlayer]);
+
+  if (isMobile) {
+    return (
+      <div className="mobile-wrapper">
+        <canvas
+          ref={canvasRef}
+          width={VW}
+          height={VH}
+          className="game-canvas mobile-canvas"
+          onTouchEnd={handleCanvasTap}
+        />
+        {gameStateRef.current.screen === 'playing' && (
+          <div className="mobile-controls">
+            <div
+              className="joystick-zone"
+              onTouchStart={(e) => handleJoystickTouch(e)}
+              onTouchMove={(e) => handleJoystickTouch(e)}
+              onTouchEnd={(e) => handleJoystickTouch(e, true)}
+              onTouchCancel={(e) => handleJoystickTouch(e, true)}
+            >
+              <div className="joystick-ring">
+                <div
+                  className="joystick-knob"
+                  style={{
+                    transform: `translate(${joystickRef.current.dx * 30}px, ${joystickRef.current.dy * 30}px)`,
+                  }}
+                />
+              </div>
+            </div>
+            <div
+              className="fix-button"
+              onTouchStart={handleFixTap}
+            >
+              FIX
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <canvas

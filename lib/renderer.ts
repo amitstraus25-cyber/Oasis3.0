@@ -1747,7 +1747,7 @@ export function drawTitle(ctx: CanvasRenderingContext2D, tick: number): void {
 }
 
 // Draw mode select screen
-export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, selectedMode: GameMode = 'single'): void {
+export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, selectedMode: GameMode = 'single', isMobile: boolean = false): void {
   ctx.fillStyle = OB.bg;
   ctx.fillRect(0, 0, VW, VH);
 
@@ -1806,16 +1806,20 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   }
 
   // Multiplayer card
-  ctx.fillStyle = !isSingle ? OB.bgCardLight : OB.bgCard;
+  const multiDisabled = isMobile;
+  ctx.fillStyle = (!isSingle && !multiDisabled) ? OB.bgCardLight : OB.bgCard;
   ctx.beginPath();
   ctx.roundRect(VW / 2 + 20, 145, 170, 200, 12);
   ctx.fill();
-  ctx.strokeStyle = !isSingle ? `rgba(249,115,22,${pulse})` : OB.purple + '30';
-  ctx.lineWidth = !isSingle ? 3 : 1;
+  ctx.strokeStyle = (!isSingle && !multiDisabled) ? `rgba(249,115,22,${pulse})` : OB.purple + '30';
+  ctx.lineWidth = (!isSingle && !multiDisabled) ? 3 : 1;
   ctx.beginPath();
   ctx.roundRect(VW / 2 + 20, 145, 170, 200, 12);
   ctx.stroke();
   
+  if (multiDisabled) {
+    ctx.globalAlpha = 0.35;
+  }
   drawPerson(ctx, VW / 2 + 60 + camera.x, 175 + camera.y, camera, tick, {
     isPlayer: true,
     shirtColor: OB.purple,
@@ -1830,12 +1834,17 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
     walking: true,
     frame: Math.floor(Date.now() / 300 + 1) % 2
   });
+  ctx.globalAlpha = 1;
   
-  ctx.fillStyle = !isSingle ? OB.textPrimary : OB.textMuted;
+  ctx.fillStyle = (!isSingle && !multiDisabled) ? OB.textPrimary : OB.textMuted;
   ctx.font = 'bold 18px monospace';
   ctx.fillText('2 PLAYERS', VW / 2 + 105, 265);
   
-  if (!isSingle) {
+  if (multiDisabled) {
+    ctx.fillStyle = OB.textMuted;
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('PC ONLY', VW / 2 + 105, 305);
+  } else if (!isSingle) {
     ctx.fillStyle = OB.orange;
     ctx.beginPath();
     ctx.roundRect(VW / 2 + 55, 285, 100, 30, 6);
@@ -1848,7 +1857,11 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   // Navigation hint
   ctx.fillStyle = OB.textSecondary;
   ctx.font = 'bold 14px monospace';
-  ctx.fillText('\u2190  A / D  \u2192    to switch   |   ENTER to start', VW / 2, 365);
+  if (isMobile) {
+    ctx.fillText('Tap to start!', VW / 2, 365);
+  } else {
+    ctx.fillText('\u2190  A / D  \u2192    to switch   |   ENTER to start', VW / 2, 365);
+  }
 
   // Controls card
   ctx.fillStyle = OB.bgCard + 'aa';
