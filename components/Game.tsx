@@ -710,30 +710,45 @@ export default function Game({ isMobile = false }: GameProps) {
       }
     }
 
+    const promptMobileName = (screenType: 'win' | 'lose') => {
+      setTimeout(() => {
+        const name = window.prompt('Enter your name for the leaderboard:');
+        if (name && name.trim().length > 0) {
+          const elapsed = GAME_TIME - gameStateRef.current.timer;
+          submitScore(name.trim(), elapsed, gameStateRef.current.fixed).then(s => {
+            gameStateRef.current.scores = s;
+            gameStateRef.current.scoreSubmitted = true;
+          });
+        }
+      }, 500);
+    };
+
     // Check win condition
     if (state.gameMode === 'multi') {
       if (player.fixes >= TOTAL_ISSUES) {
         state.winner = playerNum === 1 ? 'player1' : 'player2';
         state.screen = 'win';
-        state.enteringName = true;
+        state.enteringName = !isMobile;
         state.playerName = '';
         state.scoreSubmitted = false;
         stopMusic();
         sfxWin();
         fetchScores().then(s => { state.scores = s; });
+        if (isMobile) promptMobileName('win');
       }
     } else {
       if (state.fixed >= TOTAL_ISSUES) {
         state.screen = 'win';
-        state.enteringName = true;
+        state.enteringName = !isMobile;
         state.playerName = '';
         state.scoreSubmitted = false;
         stopMusic();
         sfxWin();
         fetchScores().then(s => { state.scores = s; });
+        if (isMobile) promptMobileName('win');
       }
     }
-  }, []);
+  }, [isMobile]);
 
   const update = useCallback((dt: number) => {
     const state = gameStateRef.current;
@@ -759,9 +774,24 @@ export default function Game({ isMobile = false }: GameProps) {
       }
       
       state.screen = 'lose';
+      state.enteringName = !isMobile;
+      state.playerName = '';
+      state.scoreSubmitted = false;
       stopMusic();
       sfxLose();
       fetchScores().then(s => { state.scores = s; });
+      if (isMobile) {
+        setTimeout(() => {
+          const name = window.prompt('Enter your name for the leaderboard:');
+          if (name && name.trim().length > 0) {
+            const elapsed = GAME_TIME - gameStateRef.current.timer;
+            submitScore(name.trim(), elapsed, gameStateRef.current.fixed).then(s => {
+              gameStateRef.current.scores = s;
+              gameStateRef.current.scoreSubmitted = true;
+            });
+          }
+        }, 500);
+      }
       return;
     }
 
@@ -807,7 +837,7 @@ export default function Game({ isMobile = false }: GameProps) {
       if (npc.happyTimer > 0) npc.happyTimer--;
       if (state.tick % 12 === 0) npc.frame = 1 - npc.frame;
     }
-  }, [updatePlayer, updatePlayer2, updateCamera, updateParticles, updateCamels, updateDancers, spawnIssueParticles, findNearbyIssue]);
+  }, [updatePlayer, updatePlayer2, updateCamera, updateParticles, updateCamels, updateDancers, spawnIssueParticles, findNearbyIssue, isMobile]);
 
   const renderPlayerView = useCallback((
     ctx: CanvasRenderingContext2D,
