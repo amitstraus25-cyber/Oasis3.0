@@ -1182,6 +1182,7 @@ export default function Game() {
         e.preventDefault();
         initAudio();
         state.screen = 'modeSelect';
+        return;
       }
 
       // Mode select -> toggle + confirm
