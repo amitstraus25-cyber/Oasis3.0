@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   TILE, MAP_W, MAP_H, VW, VH, T, WALKABLE, SPLIT_VW,
   PLAYER_SPEED, FIX_RANGE, GAME_TIME, TOTAL_ISSUES, OASIS,
@@ -26,6 +26,8 @@ interface GameProps {
 export default function Game({ isMobile = false }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const joystickRef = useRef<{ active: boolean; dx: number; dy: number }>({ active: false, dx: 0, dy: 0 });
+  const joystickKnobRef = useRef<HTMLDivElement>(null);
+  const [mobileControlsVisible, setMobileControlsVisible] = useState(false);
   const gameStateRef = useRef<{
     screen: GameScreen;
     gameMode: GameMode;
@@ -159,7 +161,8 @@ export default function Game({ isMobile = false }: GameProps) {
     state.deskMap = deskMap;
 
     startMusic();
-  }, []);
+    if (isMobile) setMobileControlsVisible(true);
+  }, [isMobile]);
 
   const canWalk = useCallback((px: number, py: number): boolean => {
     const state = gameStateRef.current;
@@ -1229,6 +1232,7 @@ export default function Game({ isMobile = false }: GameProps) {
           state.screen = 'title';
           state.camera = { x: 0, y: 0 };
           state.camera2 = { x: 0, y: 0 };
+          setMobileControlsVisible(false);
         }
       }
 
@@ -1299,9 +1303,10 @@ export default function Game({ isMobile = false }: GameProps) {
     return () => cancelAnimationFrame(raf);
   }, [isMobile]);
 
-  // Mobile: handle canvas tap for title/modeSelect screens
+  // Mobile: handle canvas tap for title/modeSelect/end screens only
   const handleCanvasTap = useCallback(() => {
     const state = gameStateRef.current;
+    if (state.screen === 'playing') return;
     if (state.screen === 'title') {
       initAudio();
       state.screen = 'modeSelect';
@@ -1314,11 +1319,12 @@ export default function Game({ isMobile = false }: GameProps) {
         state.screen = 'title';
         state.camera = { x: 0, y: 0 };
         state.camera2 = { x: 0, y: 0 };
+        setMobileControlsVisible(false);
       }
     }
   }, [startGame, isMobile]);
 
-  // Joystick touch handlers
+  // Joystick touch handlers -- update knob DOM directly for smooth visuals
   const handleJoystickTouch = useCallback((e: React.TouchEvent, isEnd = false) => {
     e.preventDefault();
     const j = joystickRef.current;
@@ -1326,17 +1332,20 @@ export default function Game({ isMobile = false }: GameProps) {
       j.active = false;
       j.dx = 0;
       j.dy = 0;
-      return;
+    } else {
+      const touch = e.touches[0];
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const dx = (touch.clientX - rect.left - cx) / cx;
+      const dy = (touch.clientY - rect.top - cy) / cy;
+      j.active = true;
+      j.dx = Math.max(-1, Math.min(1, dx));
+      j.dy = Math.max(-1, Math.min(1, dy));
     }
-    const touch = e.touches[0];
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const dx = (touch.clientX - rect.left - cx) / cx;
-    const dy = (touch.clientY - rect.top - cy) / cy;
-    j.active = true;
-    j.dx = Math.max(-1, Math.min(1, dx));
-    j.dy = Math.max(-1, Math.min(1, dy));
+    if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transform = `translate(${j.dx * 30}px, ${j.dy * 30}px)`;
+    }
   }, []);
 
   const handleFixTap = useCallback((e: React.TouchEvent) => {
@@ -1357,7 +1366,7 @@ export default function Game({ isMobile = false }: GameProps) {
           className="game-canvas mobile-canvas"
           onTouchEnd={handleCanvasTap}
         />
-        {gameStateRef.current.screen === 'playing' && (
+        {mobileControlsVisible && (
           <div className="mobile-controls">
             <div
               className="joystick-zone"
@@ -1367,12 +1376,7 @@ export default function Game({ isMobile = false }: GameProps) {
               onTouchCancel={(e) => handleJoystickTouch(e, true)}
             >
               <div className="joystick-ring">
-                <div
-                  className="joystick-knob"
-                  style={{
-                    transform: `translate(${joystickRef.current.dx * 30}px, ${joystickRef.current.dy * 30}px)`,
-                  }}
-                />
+                <div ref={joystickKnobRef} className="joystick-knob" />
               </div>
             </div>
             <div

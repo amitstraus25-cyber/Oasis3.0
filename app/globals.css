@@ -8,14 +8,19 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   background: #0f0f1a;
+  font-family: monospace;
+  overscroll-behavior: none;
+}
+
+body {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
-  font-family: monospace;
 }
 
 .game-container {
@@ -23,6 +28,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .game-canvas {
@@ -39,8 +45,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -48,10 +57,12 @@ body {
 }
 
 .mobile-canvas {
-  max-height: calc(100vh - 160px);
+  width: 100vw;
+  max-height: calc(100dvh - 140px);
   max-width: 100vw;
   border: none;
   border-radius: 0;
+  object-fit: contain;
 }
 
 .mobile-controls {
@@ -59,14 +70,14 @@ body {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  max-width: 480px;
-  padding: 12px 24px;
-  gap: 20px;
+  padding: 8px 20px;
+  flex-shrink: 0;
+  height: 130px;
 }
 
 .joystick-zone {
-  width: 120px;
-  height: 120px;
+  width: 110px;
+  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,7 +102,7 @@ body {
   border-radius: 50%;
   background: rgba(124, 92, 252, 0.6);
   border: 2px solid rgba(167, 139, 250, 0.5);
-  transition: transform 0.05s ease-out;
+  will-change: transform;
 }
 
 .fix-button {
@@ -109,6 +120,7 @@ body {
   justify-content: center;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
 
 .fix-button:active {
