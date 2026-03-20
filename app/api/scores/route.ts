@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 
 interface ScoreEntry {
   name: string;
@@ -9,15 +8,22 @@ interface ScoreEntry {
 }
 
 const MAX_SCORES = 5;
-const KV_KEY = 'nhi-fixer-scores';
+
+let scores: ScoreEntry[] = [];
+
+function mergeAndSort(existing: ScoreEntry[], incoming: ScoreEntry[]): ScoreEntry[] {
+  const map = new Map<string, ScoreEntry>();
+  for (const s of [...existing, ...incoming]) {
+    const key = `${s.name}|${s.time}|${s.fixes}|${s.date}`;
+    if (!map.has(key)) map.set(key, s);
+  }
+  const all = Array.from(map.values());
+  all.sort((a, b) => a.time - b.time || b.fixes - a.fixes);
+  return all.slice(0, MAX_SCORES);
+}
 
 export async function GET() {
-  try {
-    const scores = await kv.get<ScoreEntry[]>(KV_KEY) || [];
-    return NextResponse.json(scores.slice(0, MAX_SCORES));
-  } catch {
-    return NextResponse.json([]);
-  }
+  return NextResponse.json(scores.slice(0, MAX_SCORES));
 }
 
 export async function POST(request: Request) {
@@ -36,14 +42,23 @@ export async function POST(request: Request) {
       date: new Date().toISOString().split('T')[0],
     };
 
-    const scores = await kv.get<ScoreEntry[]>(KV_KEY) || [];
-    scores.push(entry);
-    scores.sort((a, b) => a.time - b.time || b.fixes - a.fixes);
-    const top = scores.slice(0, MAX_SCORES);
-    await kv.set(KV_KEY, top);
+    scores = mergeAndSort(scores, [entry]);
 
-    return NextResponse.json({ success: true, scores: top });
+    return NextResponse.json({ success: true, scores: scores.slice(0, MAX_SCORES) });
   } catch {
     return NextResponse.json({ error: 'Failed to save score' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const incoming: ScoreEntry[] = Array.isArray(body) ? body : [];
+    if (incoming.length > 0) {
+      scores = mergeAndSort(scores, incoming);
+    }
+    return NextResponse.json(scores.slice(0, MAX_SCORES));
+  } catch {
+    return NextResponse.json(scores.slice(0, MAX_SCORES));
   }
 }

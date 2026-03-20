@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Game from "@/components/Game";
+import { seedServer } from "@/lib/scoreboard";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
@@ -14,6 +15,7 @@ export default function Home() {
     };
     check();
     window.addEventListener('resize', check);
+    seedServer();
     return () => window.removeEventListener('resize', check);
   }, []);
 
