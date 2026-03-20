@@ -1064,15 +1064,15 @@ export default function Game({ isMobile = false }: GameProps) {
         player2Color: '#fb923c'
       });
       
-      // Shared timer at top center
+      // Shared timer at top center with hourglass
       ctx.fillStyle = 'rgba(15,15,26,0.88)';
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 60, 5, 120, 40, 8);
+      ctx.roundRect(VW / 2 - 70, 5, 140, 40, 8);
       ctx.fill();
       ctx.strokeStyle = state.timer < 15 ? 'rgba(255,85,85,0.5)' : 'rgba(124,92,252,0.4)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(VW / 2 - 60, 5, 120, 40, 8);
+      ctx.roundRect(VW / 2 - 70, 5, 140, 40, 8);
       ctx.stroke();
       
       const mins = Math.floor(state.timer / 60);
@@ -1081,7 +1081,60 @@ export default function Game({ isMobile = false }: GameProps) {
       ctx.fillStyle = state.timer < 15 ? '#ff5555' : '#e8e5f0';
       ctx.font = 'bold 22px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(ts, VW / 2, 33);
+      ctx.fillText(ts, VW / 2 - 10, 33);
+      ctx.textAlign = 'left';
+      // Mini hourglass
+      const hx = VW / 2 + 34, hy = 10;
+      ctx.fillStyle = '#5a4020';
+      ctx.fillRect(hx, hy, 20, 2);
+      ctx.fillRect(hx, hy + 26, 20, 2);
+      ctx.fillStyle = '#d4a855';
+      ctx.beginPath();
+      ctx.moveTo(hx + 2, hy + 3);
+      ctx.lineTo(hx + 18, hy + 3);
+      ctx.lineTo(hx + 10, hy + 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(hx + 10, hy + 15);
+      ctx.lineTo(hx + 18, hy + 25);
+      ctx.lineTo(hx + 2, hy + 25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#3a2810';
+      ctx.fillRect(hx + 8, hy + 12, 4, 4);
+
+      // Menu button (left of timer)
+      const menuX2 = VW / 2 - 108;
+      ctx.fillStyle = 'rgba(15,15,26,0.85)';
+      ctx.beginPath();
+      ctx.roundRect(menuX2, 8, 30, 30, 6);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(124,92,252,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(menuX2, 8, 30, 30, 6);
+      ctx.stroke();
+      ctx.fillStyle = '#9892a6';
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(menuX2 + 8, 17 + i * 5, 14, 2);
+      }
+
+      // Music toggle (right of timer)
+      const muteX2 = VW / 2 + 78;
+      ctx.fillStyle = 'rgba(15,15,26,0.85)';
+      ctx.beginPath();
+      ctx.roundRect(muteX2, 8, 30, 30, 6);
+      ctx.fill();
+      ctx.strokeStyle = state.musicMuted ? 'rgba(255,85,85,0.4)' : 'rgba(124,92,252,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(muteX2, 8, 30, 30, 6);
+      ctx.stroke();
+      ctx.fillStyle = state.musicMuted ? '#ff5555' : '#a78bfa';
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(state.musicMuted ? '\u266A\u0338' : '\u266A', muteX2 + 15, 29);
       ctx.textAlign = 'left';
       
       // Player 1 score (left)
@@ -1373,16 +1426,20 @@ export default function Game({ isMobile = false }: GameProps) {
         return;
       }
 
-      // Menu button
-      const menuX = VW - 120 - 82;
-      if (cx >= menuX && cx <= menuX + 30 && cy >= 10 && cy <= 40) {
+      // Menu button (single player position OR multiplayer position)
+      const menuXSingle = VW - 120 - 82;
+      const menuXMulti = VW / 2 - 108;
+      const menuX = state.gameMode === 'multi' ? menuXMulti : menuXSingle;
+      if (cx >= menuX && cx <= menuX + 30 && cy >= 8 && cy <= 40) {
         state.paused = true;
         return;
       }
 
-      // Mute button
-      const muteX = VW - 120 - 46;
-      const muteY = 10;
+      // Mute button (single player position OR multiplayer position)
+      const muteXSingle = VW - 120 - 46;
+      const muteXMulti = VW / 2 + 78;
+      const muteX = state.gameMode === 'multi' ? muteXMulti : muteXSingle;
+      const muteY = state.gameMode === 'multi' ? 8 : 10;
       if (cx >= muteX && cx <= muteX + 30 && cy >= muteY && cy <= muteY + 30) {
         state.musicMuted = toggleMusic();
       }
