@@ -1917,7 +1917,7 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   ctx.fillStyle = '#5EEAD4';
   ctx.fillText('\u23F1\uFE0F  Fix all 9 real NHI issues before time runs out (1:30)', VW / 2, 508);
   ctx.fillStyle = OB.orangeLight;
-  ctx.fillText('\u2615 Coffee = speed boost  |  \uD83E\uDEF5 Carpet = teleport to next issue', VW / 2, 524);
+  ctx.fillText('\u2615 Coffee = speed boost  |  \uD83C\uDF1F Magic carpet = teleport to next issue', VW / 2, 524);
   ctx.fillStyle = '#ff69b4';
   ctx.fillText('\uD83D\uDC2B Camels & \uD83D\uDC83 dancers freeze you  |  \uD83D\uDCAC Decoy NHIs waste your time!', VW / 2, 540);
 
