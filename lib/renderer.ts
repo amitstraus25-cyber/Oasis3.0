@@ -1889,11 +1889,11 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   // Controls card
   ctx.fillStyle = OB.bgCard + 'aa';
   ctx.beginPath();
-  ctx.roundRect(VW / 2 - 230, 390, 460, 100, 10);
+  ctx.roundRect(VW / 2 - 230, 390, 460, 170, 10);
   ctx.fill();
   ctx.strokeStyle = OB.purple + '25';
   ctx.beginPath();
-  ctx.roundRect(VW / 2 - 230, 390, 460, 100, 10);
+  ctx.roundRect(VW / 2 - 230, 390, 460, 170, 10);
   ctx.stroke();
 
   ctx.fillStyle = OB.textMuted;
@@ -1905,15 +1905,26 @@ export function drawModeSelect(ctx: CanvasRenderingContext2D, tick: number, sele
   ctx.fillText('1P: WASD / Arrows to move, E / SPACE / ENTER to fix', VW / 2, 438);
   ctx.fillStyle = OB.orangeLight;
   ctx.fillText('2P: P1=WASD+E/SPACE  |  P2=Arrows+ENTER/SHIFT', VW / 2, 458);
-  
-  ctx.fillStyle = OB.textSecondary;
+
+  ctx.fillStyle = OB.purple + '60';
+  ctx.fillRect(VW / 2 - 210, 470, 420, 1);
+
+  ctx.fillStyle = OB.purpleLight;
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText('\u2728 HOW TO PLAY \u2728', VW / 2, 488);
+
   ctx.font = '11px monospace';
-  ctx.fillText('Fix all issues before time runs out! (1:30 timer)', VW / 2, 480);
+  ctx.fillStyle = '#5EEAD4';
+  ctx.fillText('\u23F1\uFE0F  Fix all 9 real NHI issues before time runs out (1:30)', VW / 2, 508);
+  ctx.fillStyle = OB.orangeLight;
+  ctx.fillText('\u2615 Coffee = speed boost  |  \uD83E\uDEF5 Carpet = teleport to next issue', VW / 2, 524);
+  ctx.fillStyle = '#ff69b4';
+  ctx.fillText('\uD83D\uDC2B Camels & \uD83D\uDC83 dancers freeze you  |  \uD83D\uDCAC Decoy NHIs waste your time!', VW / 2, 540);
 
   // Back hint
   ctx.fillStyle = OB.textMuted;
   ctx.font = '11px monospace';
-  ctx.fillText('Press ESC to go back', VW / 2, 530);
+  ctx.fillText('Press ESC to go back', VW / 2, 580);
   
   ctx.textAlign = 'left';
   ctx.lineWidth = 1;
