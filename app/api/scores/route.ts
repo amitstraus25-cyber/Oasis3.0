@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
 
 interface ScoreEntry {
   name: string;
@@ -8,8 +9,21 @@ interface ScoreEntry {
 }
 
 const MAX_SCORES = 5;
+const REDIS_KEY = 'nhi-fixer-scores';
 
-let scores: ScoreEntry[] = [];
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
+
+async function getScores(): Promise<ScoreEntry[]> {
+  const data = await redis.get<ScoreEntry[]>(REDIS_KEY);
+  return data ?? [];
+}
+
+async function saveScores(scores: ScoreEntry[]): Promise<void> {
+  await redis.set(REDIS_KEY, scores.slice(0, MAX_SCORES));
+}
 
 function mergeAndSort(existing: ScoreEntry[], incoming: ScoreEntry[]): ScoreEntry[] {
   const map = new Map<string, ScoreEntry>();
@@ -23,7 +37,12 @@ function mergeAndSort(existing: ScoreEntry[], incoming: ScoreEntry[]): ScoreEntr
 }
 
 export async function GET() {
-  return NextResponse.json(scores.slice(0, MAX_SCORES));
+  try {
+    const scores = await getScores();
+    return NextResponse.json(scores);
+  } catch {
+    return NextResponse.json([]);
+  }
 }
 
 export async function POST(request: Request) {
@@ -42,9 +61,11 @@ export async function POST(request: Request) {
       date: new Date().toISOString().split('T')[0],
     };
 
-    scores = mergeAndSort(scores, [entry]);
+    const existing = await getScores();
+    const merged = mergeAndSort(existing, [entry]);
+    await saveScores(merged);
 
-    return NextResponse.json({ success: true, scores: scores.slice(0, MAX_SCORES) });
+    return NextResponse.json({ success: true, scores: merged });
   } catch {
     return NextResponse.json({ error: 'Failed to save score' }, { status: 500 });
   }
@@ -54,11 +75,12 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json();
     const incoming: ScoreEntry[] = Array.isArray(body) ? body : [];
-    if (incoming.length > 0) {
-      scores = mergeAndSort(scores, incoming);
-    }
-    return NextResponse.json(scores.slice(0, MAX_SCORES));
+    const existing = await getScores();
+    const merged = mergeAndSort(existing, incoming);
+    await saveScores(merged);
+    return NextResponse.json(merged);
   } catch {
-    return NextResponse.json(scores.slice(0, MAX_SCORES));
+    const scores = await getScores().catch(() => []);
+    return NextResponse.json(scores);
   }
 }
